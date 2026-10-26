@@ -1,4 +1,4 @@
-const CACHE = "lmx-v20";
+const CACHE = "lmx-v21";
 const ASSETS = [
   "./", "index.html", "manifest.json", "icon.svg",
   "ocr/tesseract.min.js", "ocr/worker.min.js",
