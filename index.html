@@ -394,14 +394,14 @@ const DN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.getDay()).map(l=>[toMin(l.a),toMin(l.b),l]).sort((x,y)=>x[0]-y[0]);
  const busy=les.map(l=>[l[0],l[1]]),free=(a,z)=>busy.every(x=>z<=x[0]||a>=x[1]);
  const P=[[w,"Sveglia, acqua e luce naturale"],[w+15,"Colazione"]];
- const bus=d.getDay()>=1&&d.getDay()<=5;if(bus){busy.push([455,497]);P.push([463,"Bus per il Poli (arrivo 8:17)",497])}
+ const bus=les.length>0;let home=0;if(bus){const dep=les[0][0]<=510?463:les[0][0]-49;busy.push([dep-8,dep+34]);P.push([dep,`Bus per il Poli (arrivo ${fromMin(dep+34)})`,dep+34]);if(les[0][0]>510)home=1}
  const grp=[];les.forEach(l=>{const g=grp[grp.length-1];if(g&&l[0]-g[1]<=15){g[1]=Math.max(g[1],l[1]);g[2].push(l[2])}else grp.push([l[0],l[1],[l[2]]])});
  grp.forEach(g=>P.push([g[0],`<b>Lezioni</b> <span class="mute">${g[2].map(x=>esc(x.c)+(x.r?" ("+esc(x.r)+")":"")).join(", ")}</span>`,g[1]]));
  let lu=780;for(const m of [780,795,810,825,840,855,870,765,750,735,720])if(free(m,m+45)){lu=m;break}busy.push([lu,lu+45]);P.push([lu,"Pranzo",lu+45]);
  if(sp){busy.push([990,1180]);P.push([990,"Spuntino: banana o yogurt"],[1050,"Ping pong",1140],[1150,"Doccia"])}
  else if(free(1110,1140)){busy.push([1110,1140]);P.push([1110,"Movimento: camminata 30 min",1140])}
  const di=sp?1185:1200;busy.push([di,di+45]);P.push([di,sp?"Cena di recupero":"Cena",di+45]);
- busy.sort((x,y)=>x[0]-y[0]);let c=bus?500:Math.max(w+90,510);
+ busy.sort((x,y)=>x[0]-y[0]);let c=bus&&!home?500:w+60;
  for(const x of [...busy,[1140,1140]]){const end=Math.min(x[0],1140)-10;if(end-c>=40)P.push([c,`Studio libero (${Math.floor((end-c)/60)}h${pad((end-c)%60)}${end-c>=100?", blocchi da 50 min + 10 di pausa":""})`,end]);c=Math.max(c,x[1]+10)}
  P.push([1260,"Ripasso leggero o tempo libero"],[b-30,"Schermi spenti, prepara lo zaino"],[b,sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
  return P.sort((x,y)=>x[0]-y[0])}
