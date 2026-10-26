@@ -19,8 +19,8 @@ button.b,button.g,label.b{min-height:44px}
 body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--f-b);margin:0}
 .wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 96px}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-h1{font:600 1.6rem/1.1 var(--f-d);margin:0;letter-spacing:-.03em}
-h2{font:600 1.08rem/1.25 var(--f-d);letter-spacing:-.01em;margin:0 0 8px;text-wrap:balance}
+h1{font:800 1.75rem/1.1 var(--f-d);margin:0;letter-spacing:-.035em}
+h2{font:700 1.15rem/1.25 var(--f-d);letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
 h3{font:700 1rem var(--f-b);margin:0}
 .mute{color:var(--mute)}.small{font-size:.85rem}.num{font-family:var(--f-m);font-variant-numeric:tabular-nums}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:safe center;gap:2px;z-index:5;overflow-x:auto;scrollbar-width:none;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
@@ -31,7 +31,7 @@ section{display:none;margin-top:16px}section.on{display:grid;gap:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-.tile b{display:block;font:600 1.5rem var(--f-d);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile b{display:block;font:700 1.5rem var(--f-d);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .tile span{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--acc)}
 button.b,.b{font:700 .9rem var(--f-b);border:1px solid var(--acc);background:var(--acc);color:var(--card);padding:9px 14px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block}
@@ -499,8 +499,10 @@ function importH(t){const p=String(t).trim().split(";").map(x=>x.trim());if(p[0]
  const o=S.health[p[1]]||{},nv={st:n(p[2],1),hr:n(p[3],1),rhr:n(p[4],1),sl,kc:n(p[6],2)};Object.keys(nv).forEach(k=>{if(nv[k]!=null&&!(k==="sl"&&nv[k]===0&&o.sl))o[k]=k==="sl"?nv[k]:Math.round(nv[k])});S.health[p[1]]=o;save();return true}
 $("g-dark").checked=document.documentElement.dataset.theme==="dark";$("g-dark").onchange=e=>{const d=e.target.checked;document.documentElement.dataset.theme=d?"dark":"light";try{localStorage.setItem("lmx-theme",d?"dark":"light")}catch(_){}};
 document.addEventListener("click",e=>{const t=e.target;
- if(t.dataset.hide!==undefined){S.hide=S.hide||[];S.hide.push({id:Date.now(),d:dk(VD()),k:t.dataset.hide});save();render()}
- if(t.id==="unhide"){S.gone=S.gone||[];(S.hide||[]).filter(h=>h.d===dk(VD())).forEach(h=>S.gone.push(h.id));S.hide=S.hide.filter(h=>h.d!==dk(VD()));save();render()}
+ if(t.dataset.hide!==undefined){const D=VD(),K=dk(D),p=planFor(D,toMin(S.set.wake),toMin(S.set.bed)).find(q=>pkey(q)===t.dataset.hide),st=!!p&&(p[3]==="S"||/Ripasso a caldo/.test(p[1]));S.hide=S.hide||[];S.hide.push({id:Date.now(),d:K,k:t.dataset.hide,s:st?1:0});
+  if(st&&p[3]==="S"&&(p[5]||[]).length){S.chk=S.chk||[];if(!S.chk.some(c=>c.id===K+"|"+p[0]))S.chk.push({id:K+"|"+p[0],d:K,k:"n",p:p[5],hid:1,at:Date.now()})}
+  save();if(st)toast("Blocco di studio tolto: lo conto come ore da recuperare");render()}
+ if(t.id==="unhide"){S.gone=S.gone||[];(S.hide||[]).filter(h=>h.d===dk(VD())).forEach(h=>S.gone.push(h.id));S.chk=(S.chk||[]).filter(c=>!(c.hid&&c.d===dk(VD())));S.hide=S.hide.filter(h=>h.d!==dk(VD()));save();render()}
  if(t.dataset.cudel){S.gone=S.gone||[];S.gone.push(+t.dataset.cudel);S.cust=S.cust.filter(x=>x.id!=t.dataset.cudel);save();render()}
  if(t.dataset.evdel){S.gone=S.gone||[];S.gone.push(+t.dataset.evdel);S.evs=S.evs.filter(x=>x.id!=t.dataset.evdel);save();render()}});
 $("f-cu").onsubmit=e=>{e.preventDefault();const t=$("cu-t").value.trim(),w=$("cu-w").value,d=$("cu-d").value,a=$("cu-a").value,b=$("cu-b").value;if(!t||!a||!b||b<=a||(w===""&&!d))return toast("Scrivi cosa, il giorno e gli orari");S.cust=S.cust||[];S.cust.push({id:Date.now(),t,w,d:w===""?d:"",a,b});$("cu-t").value="";save();toast("Aggiunto alla routine");render()};
@@ -629,6 +631,7 @@ function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boo
  const bf=d7.filter(d=>S.meals.some(m=>m.d===dk(d)&&m.type==="Colazione")).length;if(S.meals.length&&bf<5)out.push(["bad",`Colazione registrata solo ${bf} giorni su 7: saltarla ti fa arrivare a pranzo affamato e senza concentrazione.`]);
  const mz=S.meals.filter(m=>m.mensa&&d7.some(d=>dk(d)===m.d));if(mz.length>=2){const nv=mz.filter(m=>!(m.items||[]).some(n=>(MZF.find(x=>x[0]===n)||[])[3]==="v")).length,fr=mz.filter(m=>(m.items||[]).some(n=>(MZF.find(x=>x[0]===n)||[])[3]==="f")).length;
   out.push(nv*2>mz.length?["bad",`In mensa ${nv} pranzi su ${mz.length} senza verdura né frutta: prendi sempre un contorno, aiuta la concentrazione del pomeriggio.`]:fr*2>mz.length?["bad",`In mensa ${fr} pranzi su ${mz.length} con fritto: alterna con pollo, pesce o legumi.`]:["good",`Mensa: ${mz.length} pranzi questa settimana, scelte equilibrate.`])}
+ {const s7=new Date();s7.setDate(s7.getDate()-6);const hs=(S.hide||[]).filter(x=>x.s&&x.d>=dk(s7)&&!(S.gone||[]).includes(x.id)).length;if(hs)out.push(["bad",`Hai tolto ${hs} ${hs===1?"blocco":"blocchi"} di studio dalla giornata negli ultimi 7 giorni. Meglio accorciarli (anche 25 minuti contano) che toglierli del tutto.`])}
  const al=S.meals.filter(m=>m.sc&&d7.some(d=>dk(d)===m.d));if(al.length){const a=al.reduce((x,m)=>x+m.sc,0)/al.length;out.push(a<5?["bad",`Pasti fuori programma: voto medio ${a.toFixed(1)}/10 su ${al.length}. Va bene ogni tanto, ma non più di 2-3 a settimana.`]:["good",`Pasti fuori programma: voto medio ${a.toFixed(1)}/10, scelte decenti.`])}
  const hm_=S.hob.reduce((a,h)=>a+hobMin(h.n),0);if(new Date().getDay()>=4&&hm_<60)out.push(["bad","Questa settimana quasi niente hobby: 30 min di sport o lettura ti fanno rendere di più nello studio."]);
  return out}
@@ -680,7 +683,9 @@ function ansChk(id,k,all){const L=pendChk(),x=L.find(c=>c.id===id);if(!x)return;
 function renderChk(){const L=pendChk(),tm=new Date();tm.setDate(tm.getDate()+1);const D=debtAt(dk(tm)),dt=Object.entries(D),dS=dt.reduce((a,x)=>a+x[1],0);
  const h=L.length?`<h2>Hai studiato?</h2><ul class="plain">${L.map(c=>`<li><div><b>${c.i?"Ieri":"Oggi"} ${fromMin(c.a)}–${fromMin(c.z)}</b> <span class="mute">${c.p.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}</span></div><div class="row" style="gap:6px;margin-top:6px"><button type="button" class="b" data-ci="${c.id}" data-ck="y">Sì</button><button type="button" class="g" data-ci="${c.id}" data-ck="n">No</button>${c.i?"":`<button type="button" class="g" data-ci="${c.id}" data-ck="n" data-call="1">No, oggi salto tutto</button>`}</div></li>`).join("")}</ul>`:"";
  const dh=dS?`<p class="small" style="margin-bottom:0"><b>Da recuperare: ${fdur(dS)}</b> (${dt.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}). Le rimetto nei prossimi pomeriggi, massimo 1 h al giorno e mai dopo le 19: la sera resta libera.</p>`:"";
- ["ci-oggi","ci-studio"].forEach((id,j)=>{const e=$(id);if(!e)return;const v=h+(j||h?dh:"");e.innerHTML=v;e.hidden=!v})}
+ const s7=new Date();s7.setDate(s7.getDate()-6);const hs=(S.hide||[]).filter(x=>x.s&&x.d>=dk(s7)&&!(S.gone||[]).includes(x.id)).length;
+ const hn=hs?`<p class="small" style="margin:6px 0 0;color:var(--bad)"><b>Questa settimana hai tolto ${hs} ${hs===1?"blocco":"blocchi"} di studio dalla giornata.</b> Le ore finiscono da recuperare: se succede spesso, la giornata è troppo piena o l'orario non è realistico, dimmelo e lo cambiamo.</p>`:"";
+ ["ci-oggi","ci-studio"].forEach((id,j)=>{const e=$(id);if(!e)return;const v=h+(j||h?dh:"")+(j?hn:"");e.innerHTML=v;e.hidden=!v})}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-ci]");if(t)ansChk(t.dataset.ci,t.dataset.ck,!!t.dataset.call)});
 function renderAdvice(){const a=studyAdvice(new Date()),L=Object.entries(a.tot).sort((x,y)=>y[1]-x[1]),sum=L.reduce((s,x)=>s+x[1],0)+a.rev;
  const since=new Date();since.setHours(0,0,0,0);const done={};(S.sess||[]).filter(s=>s.a>=+since).forEach(s=>{const n=nsub(s.subj);done[n]=(done[n]||0)+s.s/60});if(cur&&cur.subj){const n=nsub(cur.subj);done[n]=(done[n]||0)+cur.s/60}
@@ -773,7 +778,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 35.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 36.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
