@@ -624,6 +624,7 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   if(!sp&&aft>=120&&tb)P.push([Math.max(tb[0]+50,960),`Pausa tè nero <span class="mute">(giornata di tanto studio: ultima caffeina. Al massimo 1 cucchiaino di zucchero, non 3, e una fetta di limone; poi solo acqua)</span>`])}
  if((S.exams||[]).some(x=>dDiff(x.d,dk(d))===1))P.push([1230,"Sera prima della prova: solo ripasso leggero degli schemi, niente cose nuove"]);
  const bed=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b;P.push([1260,sp?"Sera libera: videogiochi o relax, dopo lo sport te lo sei guadagnato":"Sera libera: videogiochi, serie o relax. Niente studio"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
+ (S.chk||[]).filter(c=>c.d===K_).forEach(c=>{const p=P.find(q=>q[3]==="S"&&K_+"|"+q[0]===c.id);if(!p)return;p[6]=c.k;p[1]=c.k==="n"?`<s class="mute">${p[1].replace(/<[^>]+>/g,"")}</s> <span class="small" style="color:var(--bad)">saltato: ore spostate nei prossimi giorni</span>`:p[1]+` <span class="small" style="color:var(--good)">✓ fatto</span>`});
  const hd=(S.hide||[]).filter(h=>h.d===K_&&!gn.includes(h.id)).map(h=>h.k);return P.filter(p=>!hd.includes(pkey(p))).sort((x,y)=>x[0]-y[0])}
 const pkey=p=>String(p[1]).replace(/<[^>]+>/g,"").slice(0,30);
 function renderOrario(){const o=S.ora||[];$("or-week").innerHTML=[1,2,3,4,5,6].map(d=>{const l=o.map((x,i)=>[x,i]).filter(x=>x[0].d===d).sort((a,b)=>a[0].a<b[0].a?-1:1);return l.length?`<h3 style="margin-top:10px">${DN[d]}</h3><ul class="plain small">${l.map(([x,i])=>`<li class="row" style="justify-content:space-between"><span><span class="num">${x.a}–${x.b}</span> ${esc(x.c)} <span class="mute">${esc(x.r||"")}</span></span><button class="g small" data-ordel="${i}" style="padding:2px 8px">Togli</button></li>`).join("")}</ul>`:""}).join("")||'<p class="mute small">Nessuna lezione inserita.</p>'}
@@ -653,7 +654,7 @@ const CC={bad:"var(--warn)",good:"var(--good)",mute:"var(--mute)"};
 const coachHtml=a=>a.map(x=>`<li style="border-left:3px solid ${CC[x[0]]};padding-left:8px">${x[1]}</li>`).join("");
 
 // ---------- consiglio di studio per materia (dalla giornata di oggi)
-function studyAdvice(d){const w=toMin(S.set.wake),b=toMin(S.set.bed),P=planFor(d,w,b),tot={};P.forEach(p=>(p[5]||[]).forEach(([n,m])=>tot[n]=(tot[n]||0)+m));
+function studyAdvice(d){const w=toMin(S.set.wake),b=toMin(S.set.bed),P=planFor(d,w,b),tot={};P.forEach(p=>p[6]!=="n"&&(p[5]||[]).forEach(([n,m])=>tot[n]=(tot[n]||0)+m));
  const rev=P.find(p=>/Ripasso a caldo/.test(p[1]));return{tot,rev:rev?rev[2]-rev[0]:0}}
 // ---------- mensa: piatti con stime locali [nome,kcal,proteine g,gruppo] (v=verdura,f=fritto)
 const MZ=[["Primo",[["Pasta al pomodoro",420,13],["Pasta al ragù",520,20],["Pasta al pesto o burro",540,14],["Riso o risotto",450,10],["Lasagne",600,25],["Minestra o passato",200,8,"v"]]],
@@ -792,7 +793,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 38.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 39.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
