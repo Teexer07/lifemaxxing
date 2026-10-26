@@ -451,7 +451,7 @@ const gh=(u,o={})=>fetch("https://api.github.com"+u,Object.assign({},o,{headers:
 function syncSt(t){$("sy-st").textContent=t}
 function uni(a,b,k){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>m.set(x[k],x));return[...m.values()]}
 function merge(R){const L=S,lt=L.ts||{},rt=R.ts||{},o={ts:{}};
- new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const useR=(rt[k]||0)>(lt[k]||0)||!(k in L);o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
+ new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const em=v=>v==null||(typeof v==="object"&&!Object.keys(v).length),a=lt[k]||0,c=rt[k]||0;const useR=!(k in L)||c>a||(c===a&&!(em(R[k])&&!em(L[k])));o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
  o.gone=[...new Set([...(L.gone||[]),...(R.gone||[])])];o.meals=uni(L.meals,R.meals,"at").filter(m=>!o.gone.includes(m.at));
  o.sleep=uni(L.sleep,R.sleep,"a");o.sess=uni(L.sess,R.sess,"a");o.hlog=uni(L.hlog,R.hlog,"at");
  o.study={};new Set([...Object.keys(L.study||{}),...Object.keys(R.study||{})]).forEach(k=>o.study[k]=Math.max((L.study||{})[k]||0,(R.study||{})[k]||0));
