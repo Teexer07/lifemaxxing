@@ -389,7 +389,8 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
  const busy=les.map(l=>[l[0],l[1]]),free=(a,z)=>busy.every(x=>z<=x[0]||a>=x[1]);
  const P=[[w,"Sveglia, acqua e luce naturale"],[w+15,"Colazione"]];
  const bus=d.getDay()>=1&&d.getDay()<=5;if(bus){busy.push([455,497]);P.push([463,"Bus per il Poli (arrivo 8:17)",497])}
- les.forEach(l=>P.push([l[0],`<b>${esc(l[2].c)}</b>${l[2].r?` <span class="mute">aula ${esc(l[2].r)}</span>`:""}`,l[1]]));
+ const grp=[];les.forEach(l=>{const g=grp[grp.length-1];if(g&&l[0]-g[1]<=15){g[1]=Math.max(g[1],l[1]);g[2].push(l[2])}else grp.push([l[0],l[1],[l[2]]])});
+ grp.forEach(g=>P.push([g[0],`<b>Lezioni</b> <span class="mute">${g[2].map(x=>esc(x.c)+(x.r?" ("+esc(x.r)+")":"")).join(", ")}</span>`,g[1]]));
  let lu=780;for(const m of [780,795,810,825,840,855,870,765,750,735,720])if(free(m,m+45)){lu=m;break}busy.push([lu,lu+45]);P.push([lu,"Pranzo",lu+45]);
  if(sp){busy.push([990,1180]);P.push([990,"Spuntino: banana o yogurt"],[1050,"Ping pong",1140],[1150,"Doccia"])}
  else if(free(1110,1140)){busy.push([1110,1140]);P.push([1110,"Movimento: camminata 30 min",1140])}
