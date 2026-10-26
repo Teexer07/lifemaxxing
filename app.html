@@ -701,7 +701,7 @@ function render(){
  $("sleep-state").textContent=S.sleepStart?"A letto dalle "+new Date(S.sleepStart).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"";
  renderStudy();renderHobby();renderBudget();renderQA();renderCasa();renderProve();renderAdvice();const co=coach();$("coach").innerHTML=coachHtml(co);$("coach-mini").innerHTML=coachHtml(co.filter(x=>x[0]==="bad").slice(0,3))||'<li class="mute">Niente da segnalare: continua così.</li>';
  const hk=Object.keys(S.health).sort().reverse().slice(0,10);
- $("h-tab").innerHTML=hk.length?`<tr class="mute" style="text-align:left"><th>Data</th><th>Passi</th><th>BPM</th><th>Riposo</th><th>Sonno</th><th>kcal</th></tr>`+hk.map(k=>{const h=S.health[k];const f=v=>v==null?"–":Math.round(v*10)/10;return `<tr style="border-top:1px solid var(--line)"><td>${k.slice(5)}</td><td>${f(h.st)}</td><td>${f(h.hr)}</td><td>${f(h.rhr)}</td><td>${f(h.sl)}</td><td>${f(h.kc)}</td></tr>`}).join(""):'<tr><td class="mute">Nessun dato importato.</td></tr>';
+ $("h-tab").innerHTML=hk.length?`<tr class="mute" style="text-align:left"><th>Data</th><th>Passi</th><th>Riposo</th><th>Sonno</th><th>kcal</th></tr>`+hk.map(k=>{const h=S.health[k];const f=v=>v==null?"–":Math.round(v*10)/10;return `<tr style="border-top:1px solid var(--line)"><td>${k.slice(5)}</td><td>${f(h.st)}</td><td>${f(h.rhr)}</td><td>${f(h.sl)}</td><td>${f(h.kc)}</td></tr>`}).join(""):'<tr><td class="mute">Nessun dato importato.</td></tr>';
 }
 // ---------- sincronizzazione con gist privato GitHub
 const FN="lifemaxxing-data.json";let tok="",gid="",pulled=false,pushT=null;
@@ -729,7 +729,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 28.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 29.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
