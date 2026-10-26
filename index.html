@@ -155,7 +155,8 @@ ol{padding-left:20px;margin:6px 0}
   <div class="grid">
     <div class="card"><h2>Orario lezioni</h2><p class="small mute">La giornata tipo si adatta: studio nelle ore libere, pasti attorno alle lezioni. Puoi mandare la foto dell'orario a Claude in chat e te lo carica lui.</p>
       <div id="or-week"></div>
-      <form id="f-or" class="row" style="margin-top:10px"><select id="or-d" aria-label="Giorno"><option value="1">Lun</option><option value="2">Mar</option><option value="3">Mer</option><option value="4">Gio</option><option value="5">Ven</option><option value="6">Sab</option></select><input type="time" id="or-a" value="08:30" aria-label="Inizio"><input type="time" id="or-b" value="10:00" aria-label="Fine"><input type="text" id="or-c" placeholder="Corso"><input type="text" id="or-r" placeholder="Aula" style="max-width:90px"><button class="b">Aggiungi</button></form></div>
+      <form id="f-or" class="row" style="margin-top:10px"><select id="or-d" aria-label="Giorno"><option value="1">Lun</option><option value="2">Mar</option><option value="3">Mer</option><option value="4">Gio</option><option value="5">Ven</option><option value="6">Sab</option></select><input type="time" id="or-a" value="08:30" aria-label="Inizio"><input type="time" id="or-b" value="10:00" aria-label="Fine"><input type="text" id="or-c" placeholder="Corso"><input type="text" id="or-r" placeholder="Aula" style="max-width:90px"><button class="b">Aggiungi</button></form>
+      <form id="f-orimp" class="row" style="margin-top:10px"><input type="text" id="or-imp" placeholder="Incolla qui il link dell'orario"><button class="g">Importa</button></form></div>
   </div>
 </section>
 
@@ -400,6 +401,8 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
 function renderOrario(){const o=S.ora||[];$("or-week").innerHTML=[1,2,3,4,5,6].map(d=>{const l=o.map((x,i)=>[x,i]).filter(x=>x[0].d===d).sort((a,b)=>a[0].a<b[0].a?-1:1);return l.length?`<h3 style="margin-top:10px">${DN[d]}</h3><ul class="plain small">${l.map(([x,i])=>`<li class="row" style="justify-content:space-between"><span><span class="num">${x.a}–${x.b}</span> ${esc(x.c)} <span class="mute">${esc(x.r||"")}</span></span><button class="g small" data-ordel="${i}" style="padding:2px 8px">Togli</button></li>`).join("")}</ul>`:""}).join("")||'<p class="mute small">Nessuna lezione inserita.</p>'}
 $("f-or").onsubmit=e=>{e.preventDefault();const c=$("or-c").value.trim();if(!c||$("or-b").value<=$("or-a").value)return toast("Inserisci corso e orari validi");S.ora=S.ora||[];S.ora.push({d:+$("or-d").value,a:$("or-a").value,b:$("or-b").value,c,r:$("or-r").value.trim()});$("or-c").value="";$("or-r").value="";save();toast("Lezione aggiunta");render()};
 document.addEventListener("click",e=>{if(e.target.dataset.ordel){S.ora.splice(+e.target.dataset.ordel,1);save();render()}});
+
+$("f-orimp").onsubmit=e=>{e.preventDefault();let v=$("or-imp").value.trim();try{const u=new URL(v);v=u.searchParams.get("ora")||v}catch(err){try{v=decodeURIComponent(v)}catch(_){}}if(importOra(v)){$("or-imp").value="";toast("Orario caricato");render()}else toast("Link non valido")};
 
 // ---------- consigli automatici (regole, nessuna AI)
 function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boolean);
