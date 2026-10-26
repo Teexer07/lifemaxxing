@@ -91,6 +91,14 @@ ol{padding-left:20px;margin:6px 0}
   <div class="row days" id="days-pasti"></div>
   <div class="row"><h2 style="margin:0" id="pasti-h">Pasti di oggi</h2><span class="small mute">Spesa: <span class="pill I">In's</span> discount, <span class="pill M">Mercatò</span> fresco</span></div>
   <div class="grid" id="meals"></div>
+  <div class="card" id="mn-card"><h2>Hai mangiato a mensa?</h2>
+    <label class="row small"><input type="checkbox" id="mn-on"> Sì, oggi a pranzo ho mangiato in mensa</label>
+    <div id="mn-form" hidden style="margin-top:8px">
+      <label class="small">Foto del vassoio (resta su questo dispositivo) <input type="file" id="mn-ph" accept="image/*" capture="environment"></label>
+      <img id="mn-prev" alt="" hidden style="max-width:100%;border-radius:10px;margin:6px 0">
+      <p class="small mute" style="margin:6px 0">Tocca cosa c'era nel piatto:</p><div id="mn-chips"></div>
+      <div class="row" style="margin-top:8px"><select id="mn-por" aria-label="Porzione"><option value="0.8">Porzione piccola</option><option value="1" selected>Porzione normale</option><option value="1.25">Porzione abbondante</option></select><input type="number" id="mn-pr" step="0.01" min="0" placeholder="Prezzo €" style="width:100px"><button type="button" class="b" id="mn-go">Registra</button></div>
+    </div><p class="small" id="mn-st" style="margin-bottom:0"></p></div>
   <div class="card"><h2>Ho mangiato altro</h2>
     <form id="f-meal" class="row"><select id="m-type"><option>Colazione</option><option>Pranzo</option><option>Cena</option><option>Spuntino</option></select><input type="text" id="m-text" placeholder="Es. pizza margherita, 2 fette"><button class="b">Registra</button></form>
     <ul class="plain small" id="meal-log" style="margin-top:10px"></ul></div>
@@ -277,7 +285,7 @@ rec:[
 ]};
 // Prezzi stimati (€ a confezione; per i prodotti a peso € al kg), da correggere con gli scontrini
 const PZ={"Pasta": 0.85, "Riso": 1.79, "Gnocchi di patate": 1.19, "Tortellini": 1.79, "Passata di pomodoro": 0.79, "Tonno sott'olio": 2.99, "Prosciutto cotto": 1.79, "Sottilette": 1.69, "Mozzarella": 0.69, "Parmigiano grattugiato": 1.99, "Latte parzialmente scremato": 1.09, "Biscotti secchi": 1.49, "Pane in cassetta": 1.29, "Pane fresco": 1.6, "Panini per hamburger": 1.29, "Banana": 0.25, "Mela": 0.35, "Arancia": 0.35, "Uova": 1.79, "Petto di pollo a fette": 8.9, "Macinato di manzo": 9.9, "Fettine di lonza": 8.5, "Hamburger di manzo": 3.2, "Cotolette di pollo impanate": 2.99, "Bastoncini di pesce": 1.99, "Nuggets di pollo": 2.49, "Wurstel di pollo": 1.29, "Polpette pronte": 4.5, "Patate": 1.99, "Piselli surgelati": 1.29, "Mais in scatola": 0.69, "Yogurt alla frutta": 1.39, "Cereali al cioccolato": 2.29, "Corn flakes": 1.49, "Preparato per pancake": 2.29, "Crema di nocciole": 2.49, "Miele": 2.49, "Piadine": 1.29, "Panna da cucina": 0.79, "Latte al cioccolato": 1.99, "Succo di frutta": 1.19, "Brioche semplici": 1.49, "Purè in fiocchi": 1.49, "Pastina": 0.89, "Dado vegetale": 0.99, "Burro": 1.59};
-const SN={I:"In's",M:"Mercatò",C:"Da casa",W:"Acqua",A:"Altro"};
+const SN={I:"In's",M:"Mercatò",C:"Da casa",W:"Acqua",A:"Altro",E:"Mensa"};
 // Confezioni per la lista della spesa: prodotto -> [quantità per confezione, descrizione]; 0 = si compra a peso
 const PK={"Pasta":[500,"pacco 500 g"],"Riso":[1000,"pacco 1 kg"],"Gnocchi di patate":[500,"confezione 500 g"],"Tortellini":[250,"confezione 250 g"],"Passata di pomodoro":[700,"bottiglia 700 g"],"Tonno sott'olio":[3,"confezione 3 scatolette"],"Prosciutto cotto":[6,"vaschetta ~120 g (6 fette)"],"Sottilette":[10,"confezione 10 fette"],"Mozzarella":[1,"mozzarella 125 g"],"Parmigiano grattugiato":[20,"busta 100 g"],"Latte parzialmente scremato":[1000,"brick 1 L"],"Biscotti secchi":[40,"pacco ~500 g"],"Pane in cassetta":[16,"confezione ~16 fette"],"Pane fresco":[8,"filone ~400 g (congela metà a fette)"],"Panini per hamburger":[4,"confezione 4 panini"],"Banana":[1,"banana"],"Mela":[1,"mela"],"Arancia":[1,"arancia"],"Uova":[6,"confezione 6 uova"],"Petto di pollo a fette":[0,"vaschetta"],"Macinato di manzo":[0,"vaschetta"],"Fettine di lonza":[0,"vaschetta"],"Hamburger di manzo":[2,"confezione 2 hamburger"],"Cotolette di pollo impanate":[4,"confezione 4 cotolette"],"Bastoncini di pesce":[10,"scatola 10 bastoncini (surgelati)"],"Nuggets di pollo":[20,"busta ~400 g (surgelati)"],"Wurstel di pollo":[4,"confezione 4 wurstel"],"Polpette pronte":[12,"vaschetta ~12 polpette"],"Patate":[10,"rete 1,5 kg (~10 patate)"],"Piselli surgelati":[450,"busta 450 g"],"Mais in scatola":[1,"lattina 150 g"],"Yogurt alla frutta":[4,"confezione 4 vasetti"],"Cereali al cioccolato":[375,"scatola 375 g"],"Corn flakes":[375,"scatola 375 g"],"Preparato per pancake":[400,"confezione ~400 g"],"Crema di nocciole":[25,"barattolo 400 g"],"Miele":[25,"vasetto 250 g"],"Piadine":[3,"confezione 3 piadine"],"Panna da cucina":[200,"brick 200 ml"],"Latte al cioccolato":[3,"confezione 3 brick"],"Succo di frutta":[3,"confezione 3 brick"],"Brioche semplici":[6,"confezione 6 brioche"],"Purè in fiocchi":[3,"confezione 3 buste"],"Pastina":[500,"pacco 500 g"],"Dado vegetale":[10,"confezione 10 dadi"],"Burro":[125,"panetto 125 g"]};
 const TIPS=["Bevi almeno 1,5 litri d'acqua: tieni una bottiglia sulla scrivania.","Spegni gli schermi 30 minuti prima di dormire: aiuta ad addormentarti prima.","Studia a blocchi di 50 minuti con 10 di pausa, lontano dal telefono.","Un frutto come spuntino vale più di un pacchetto di patatine.","La luce del mattino aiuta il ritmo sonno-veglia: apri le tende appena sveglio.","Cucina doppia dose a pranzo: metà è la cena di domani.","Caffè dopo le 16 peggiora il sonno: passa al deca.","Fai 20 minuti a piedi al giorno: anche andare al Poli a piedi conta."];
@@ -412,7 +420,7 @@ $("f-yt").onsubmit=async e=>{e.preventDefault();const q=$("yt-q").value.trim();c
 // ---------- player offline (IndexedDB) + rumore WebAudio
 const A=$("pl-a");let tracks=[],ti=-1,shuf=false,stopAt=0,ac=null,nsrc=null,ng=null,noiseOn=false;
 const V=()=>S.set.vol??8,gain=()=>(V()/100)**2,plOn=()=>!A.paused;
-const idb=new Promise(r=>{try{const q=indexedDB.open("lmx",1);q.onupgradeneeded=()=>q.result.createObjectStore("t",{keyPath:"id"});q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const idb=new Promise(r=>{try{const q=indexedDB.open("lmx",2);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains("t"))db.createObjectStore("t",{keyPath:"id"});if(!db.objectStoreNames.contains("ph"))db.createObjectStore("ph",{keyPath:"id"})};q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
 async function tx(m,f){const d=await idb;if(!d)return null;return new Promise((ok,ko)=>{const q=f(d.transaction("t",m).objectStore("t"));q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})}
 async function loadTracks(){tracks=((await tx("readonly",s=>s.getAll()))||[]).sort((a,b)=>a.name.localeCompare(b.name));renderPl()}
 function renderPl(){$("pl-list").innerHTML=tracks.map((x,i)=>`<li class="row" style="justify-content:space-between;${i===ti?"color:var(--acc);font-weight:700":""}"><span style="cursor:pointer;flex:1;min-width:0;overflow-wrap:anywhere" data-tplay="${i}">${i===ti&&plOn()?"▶ ":""}${esc(x.name)}</span><button class="g small" data-tdel="${x.id}" style="padding:2px 8px">Togli</button></li>`).join("")||'<li class="mute">Nessun brano. Premi "Aggiungi musica" e scegli dei file mp3 o m4a.</li>';
@@ -506,12 +514,12 @@ function examNote(){const k=dk(),L=(S.exams||[]).filter(x=>x.d>=k).sort((a,b)=>a
 const DN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.getDay()).map(l=>[toMin(l.a),toMin(l.b),l]).sort((x,y)=>x[0]-y[0]);
  const busy=les.map(l=>[l[0],l[1]]),free=(a,z)=>busy.every(x=>z<=x[0]||a>=x[1]);
- const rc=pick("col",d),rp=pick("pra",d),rn=pick("cen",d),BL=rc.t+15,LL=rp.t+35,DL=rn.t+35;
+ const rc=pick("col",d),rp=pick("pra",d),rn=pick("cen",d),BL=rc.t+15,LL0=rp.t+35,DL=rn.t+35;
  const P=[[w,"Sveglia, acqua e luce naturale"],[w+15,`Colazione e caffè <span class="mute">(prima un bicchiere d'acqua, il caffè a fine colazione; prepari, mangi e lavi: ${BL} min)</span>`,w+15+BL]];busy.push([w,w+15+BL]);
  const bus=les.length>0;let home=0;if(bus){const dep=les[0][0]<=510?463:les[0][0]-49;busy.push([dep-8,dep+34]);P.push([dep,`Bus per il Poli (arrivo ${fromMin(dep+34)})`,dep+34]);if(les[0][0]>510)home=1}
  const grp=[];les.forEach(l=>{const g=grp[grp.length-1];if(g&&l[0]-g[1]<=15){g[1]=Math.max(g[1],l[1]);g[2].push(l[2])}else grp.push([l[0],l[1],[l[2]]])});
  grp.forEach(g=>P.push([g[0],`<b>Lezioni</b> <span class="mute">${g[2].map(x=>esc(x.c)+(x.r?" ("+esc(x.r)+")":"")).join(", ")}</span>`,g[1]]));
- let lu=780;for(const m of [780,795,810,825,840,855,870,765,750,735,720])if(free(m,m+LL)){lu=m;break}busy.push([lu,lu+LL]);P.push([lu,`Pranzo <span class="mute">(cucini ${rp.t} min, mangi, lavi e metti a posto)</span>`,lu+LL]);
+ const mz=S.meals.some(m=>m.d===dk(d)&&m.mensa),LL=mz?45:LL0;let lu=780;for(const m of [780,795,810,825,840,855,870,765,750,735,720])if(free(m,m+LL)){lu=m;break}busy.push([lu,lu+LL]);P.push([lu,mz?"Pranzo in mensa":`Pranzo <span class="mute">(cucini ${rp.t} min, mangi, lavi e metti a posto)</span>`,lu+LL]);
  if(sp){busy.push([970,1180]);P.push([970,"Spuntino: banana o yogurt + acqua"],[995,"Esci di casa per il ping pong"],[1050,"Ping pong",1140],[1150,"Doccia"])}
  else if(free(1110,1140)){busy.push([1110,1140]);P.push([1110,"Movimento: camminata 30 min",1140])}
  const di=sp?1185:1200;busy.push([di,di+DL]);P.push([di,`${sp?"Cena di recupero":"Cena"} <span class="mute">(cucini ${rn.t} min, mangi, lavi e metti a posto)</span>`,di+DL]);
@@ -556,6 +564,8 @@ function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boo
  const r=H.map(h=>h.rhr).filter(v=>v!=null);if(r.length>=3){const a=avg(r.slice(0,-1)),l=r[r.length-1];if(l>a+5)out.push(["bad",`Battito a riposo più alto del solito (${l} contro ${Math.round(a)}): spesso è stanchezza, stress o poco sonno. Oggi studia leggero e dormi presto.`])}
  const sv=d7.map(d=>(S.study[dk(d)]||0)/3600),days=sv.filter(v=>v>0).length;if(days)out.push(avg(sv)<S.set.study*.7?["bad",`Studi in media ${avg(sv).toFixed(1)} h su ${S.set.study} h di obiettivo. Prova due blocchi da 50 min appena dopo colazione.`]:["good",`Studio medio ${avg(sv).toFixed(1)} h al giorno: in linea con l'obiettivo.`]);
  const bf=d7.filter(d=>S.meals.some(m=>m.d===dk(d)&&m.type==="Colazione")).length;if(S.meals.length&&bf<5)out.push(["bad",`Colazione registrata solo ${bf} giorni su 7: saltarla ti fa arrivare a pranzo affamato e senza concentrazione.`]);
+ const mz=S.meals.filter(m=>m.mensa&&d7.some(d=>dk(d)===m.d));if(mz.length>=2){const nv=mz.filter(m=>!(m.items||[]).some(n=>(MZF.find(x=>x[0]===n)||[])[3]==="v")).length,fr=mz.filter(m=>(m.items||[]).some(n=>(MZF.find(x=>x[0]===n)||[])[3]==="f")).length;
+  out.push(nv*2>mz.length?["bad",`In mensa ${nv} pranzi su ${mz.length} senza verdura né frutta: prendi sempre un contorno, aiuta la concentrazione del pomeriggio.`]:fr*2>mz.length?["bad",`In mensa ${fr} pranzi su ${mz.length} con fritto: alterna con pollo, pesce o legumi.`]:["good",`Mensa: ${mz.length} pranzi questa settimana, scelte equilibrate.`])}
  const hm_=S.hob.reduce((a,h)=>a+hobMin(h.n),0);if(new Date().getDay()>=4&&hm_<60)out.push(["bad","Questa settimana quasi niente hobby: 30 min di sport o lettura ti fanno rendere di più nello studio."]);
  return out}
 const CC={bad:"var(--warn)",good:"var(--good)",mute:"var(--mute)"};
@@ -564,6 +574,29 @@ const coachHtml=a=>a.map(x=>`<li style="border-left:3px solid ${CC[x[0]]};paddin
 // ---------- consiglio di studio per materia (dalla giornata di oggi)
 function studyAdvice(d){const w=toMin(S.set.wake),b=toMin(S.set.bed),P=planFor(d,w,b),tot={};P.forEach(p=>(p[5]||[]).forEach(([n,m])=>tot[n]=(tot[n]||0)+m));
  const rev=P.find(p=>/Ripasso a caldo/.test(p[1]));return{tot,rev:rev?rev[2]-rev[0]:0}}
+// ---------- mensa: piatti con stime locali [nome,kcal,proteine g,gruppo] (v=verdura,f=fritto)
+const MZ=[["Primo",[["Pasta al pomodoro",420,13],["Pasta al ragù",520,20],["Pasta al pesto o burro",540,14],["Riso o risotto",450,10],["Lasagne",600,25],["Minestra o passato",200,8,"v"]]],
+ ["Secondo",[["Pollo o tacchino",250,30],["Cotoletta",420,24,"f"],["Carne rossa o hamburger",350,28],["Pesce",230,26],["Bastoncini o pesce impanato",350,16,"f"],["Uova o frittata",260,18],["Formaggio",320,20],["Legumi",220,14,"v"]]],
+ ["Contorno",[["Verdure cotte",90,3,"v"],["Insalata",60,2,"v"],["Patate al forno",250,4],["Patatine fritte",380,4,"f"]]],
+ ["Altro",[["Pane",160,5],["Pizza o focaccia",450,15],["Frutta",80,1,"v"],["Yogurt",110,6],["Dolce",300,4]]]];
+const MZF=MZ.flatMap(g=>g[1]);let mzSel=new Set(),mzPh=null;
+function renderMensa(){const m=S.meals.find(x=>x.d===dk()&&x.mensa);$("mn-on").checked=!!m||$("mn-on").checked;$("mn-form").hidden=!!m||!$("mn-on").checked;
+ $("mn-chips").innerHTML=MZ.map(([g,L])=>`<div class="small" style="margin:4px 0"><b>${g}</b> ${L.map(([n])=>`<button type="button" class="g small${mzSel.has(n)?" on":""}" data-mz="${esc(n)}" style="padding:3px 8px;margin:2px;${mzSel.has(n)?"background:var(--acc);color:#fff":""}">${esc(n)}</button>`).join("")}</div>`).join("");
+ if(!$("mn-pr").value&&S.set.mensa)$("mn-pr").value=S.set.mensa;
+ $("mn-st").innerHTML=m?`<b>Registrato:</b> ${esc(m.txt.replace(/^Mensa: /,""))} · ~${m.k} kcal · ${m.pr} g proteine<br>${mzTip(m)}`:"";
+ if(m&&m.ph)idb.then(db=>{if(!db)return;const q=db.transaction("ph").objectStore("ph").get(m.at);q.onsuccess=()=>{if(q.result){$("mn-prev").src=q.result.u;$("mn-prev").hidden=false}}})}
+function mzTip(m){const L=m.items.map(n=>MZF.find(x=>x[0]===n)).filter(Boolean),v=L.some(x=>x[3]==="v"),fr=L.some(x=>x[3]==="f"),t=[];
+ if(m.pr<20)t.push("Poche proteine: a cena metti uova, carne, pesce o legumi.");if(!v)t.push("Niente verdura né frutta: a cena aggiungi un contorno di verdure o un frutto.");if(fr)t.push("C'era del fritto: stasera tieni la cena più leggera.");if(m.k>1000)t.push("Pranzo abbondante: per evitare il calo delle 15 fai 10 minuti a piedi prima di studiare.");
+ return t.length?t.join(" "):"Pranzo equilibrato, ottimo per la concentrazione del pomeriggio."}
+$("mn-on").onchange=()=>renderMensa();
+$("mn-ph").onchange=async e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const sc=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;c.getContext("2d").drawImage(im,0,0,c.width,c.height);mzPh=c.toDataURL("image/jpeg",0.7);$("mn-prev").src=mzPh;$("mn-prev").hidden=false;URL.revokeObjectURL(im.src)};im.src=URL.createObjectURL(f)};
+document.addEventListener("click",e=>{const t=e.target.closest("[data-mz]");if(t){const n=t.dataset.mz;mzSel.has(n)?mzSel.delete(n):mzSel.add(n);renderMensa()}});
+$("mn-go").onclick=()=>{if(!mzSel.size)return toast("Tocca almeno un piatto");const f=+$("mn-por").value,L=[...mzSel].map(n=>MZF.find(x=>x[0]===n)),at=Date.now(),pr=parseFloat(String($("mn-pr").value).replace(",","."))||0;
+ const m={d:dk(),type:"Pranzo",txt:"Mensa: "+[...mzSel].join(", "),at,mensa:1,items:[...mzSel],k:Math.round(L.reduce((a,x)=>a+x[1],0)*f/10)*10,pr:Math.round(L.reduce((a,x)=>a+x[2],0)*f),ph:mzPh?1:0};
+ S.meals=S.meals.filter(x=>!(x.d===dk()&&x.type==="Pranzo"&&x.plan));S.meals.push(m);if(pr>0){addExp(dk(),"E",pr,"mensa");S.set.mensa=pr}
+ if(mzPh){const u=mzPh;idb.then(db=>{if(db)db.transaction("ph","readwrite").objectStore("ph").put({id:at,u})})}
+ mzSel=new Set();mzPh=null;save();toast("Pranzo in mensa registrato");render()};
+
 // ---------- "Hai studiato?" e ore da recuperare
 function debtAt(k){const s=new Date(k+"T12:00:00");s.setDate(s.getDate()-14);const since=dk(s),D={};
  (S.chk||[]).filter(c=>c.d<k&&c.d>=since&&!(S.gone||[]).includes(c.id)).forEach(c=>(c.p||[]).forEach(([n,m,r])=>{D[n]=(D[n]||0)+(c.k==="n"?m-(r||0):-(r||0))}));
@@ -633,7 +666,7 @@ function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("c
  $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
- renderTiles();try{renderChk()}catch(e){console.error(e)}
+ renderTiles();try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
  renderDays();const plan=planFor(VD(),w,b),en=vo===0?energy():{e:1,why:["Anteprima: il giorno stesso la giornata si adatta a come hai dormito."]};
  $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=[examNote(),...en.why].filter(Boolean).join(" ");
@@ -643,7 +676,7 @@ function render(){
  $("menu-mini").innerHTML=["col","pra","cen"].map(t=>`<li class="row" style="justify-content:space-between"><span><b>${TN[t]}</b> ${esc(pick(t,VD()).n)}</span><span class="small mute num">${pick(t,VD()).t}'</span></li>`).join("");
  $("tip").textContent="Consiglio: "+TIPS[dayN(new Date())%TIPS.length];
  $("meals").innerHTML=["col","pra","cen"].map(recipeCard).join("");
- $("meal-log").innerHTML=S.meals.filter(m=>m.d===dk()).map(m=>`<li class="row" style="justify-content:space-between"><span><b>${m.type}</b> ${esc(m.txt)}</span><button class="g small" data-del="${m.at}" style="padding:2px 8px">Togli</button></li>`).join("")||'<li class="mute">Ancora niente oggi.</li>';
+ $("meal-log").innerHTML=S.meals.filter(m=>m.d===dk()).map(m=>`<li class="row" style="justify-content:space-between"><span><b>${m.type}</b> ${esc(m.txt)}${m.k?` <span class="mute">~${m.k} kcal</span>`:""}</span><button class="g small" data-del="${m.at}" style="padding:2px 8px">Togli</button></li>`).join("")||'<li class="mute">Ancora niente oggi.</li>';
  $("shop").innerHTML=shopping();
  const sv=last7().map(d=>sleepFor(d)||0);chart("ch-sleep","lb-sleep",sv,x=>x.toFixed(1));const n=sv.filter(Boolean);$("sleep-avg").textContent=n.length?`Media ${(n.reduce((a,c)=>a+c)/n.length).toFixed(1)} h · obiettivo 7,5-8 h`:"Nessun dato ancora.";
  $("sleep-state").textContent=S.sleepStart?"A letto dalle "+new Date(S.sleepStart).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"";
@@ -674,7 +707,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 23.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 24.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
