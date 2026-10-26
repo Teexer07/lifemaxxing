@@ -82,7 +82,7 @@ ol{padding-left:20px;margin:6px 0}
     <div class="tile"><span>Passi (Watch)</span><b id="t-steps">–</b></div>
   </div>
   <div class="grid">
-    <div class="card"><h2>La tua giornata</h2><ul class="plain sched" id="sched"></ul></div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">La tua giornata</h2><span id="en-pill"></span></div><p class="small mute" id="en-why" style="margin:4px 0 8px"></p><ul class="plain sched" id="sched"></ul></div>
     <div class="card"><h2>Menù di oggi</h2><ul class="plain" id="menu-mini"></ul><p class="small mute" id="tip"></p></div>
     <div class="card"><h2>Da migliorare</h2><ul class="plain small" id="coach-mini"></ul></div>
   </div>
@@ -445,6 +445,14 @@ function renderHobby(){
  $("hb-list").innerHTML=S.hob.map((h,i)=>{const m=hobMin(h.n);return `<li><div class="row" style="justify-content:space-between"><b>${esc(h.n)}</b><span class="small num mute">${m}/${h.g} min sett.</span></div><div class="bar"><i style="width:${Math.min(100,m/h.g*100)}%"></i></div><div class="row" style="margin-top:6px"><button class="g small" data-hb="${i}|15">+15</button><button class="g small" data-hb="${i}|30">+30</button><button class="g small" data-hb="${i}|60">+60</button><button class="g small" data-hbdel="${i}">Togli</button></div></li>`}).join("")||'<li class="mute small">Aggiungi un hobby o scegline uno dalle idee.</li>';
  $("hb-ideas").innerHTML=IDEAS.map(x=>`<li><b>${x[0]}</b> ${x[1]} <button class="g small" data-idea="${esc(x[0])}" style="padding:2px 8px">Aggiungi</button></li>`).join("")}
 
+// ---------- energia del giorno: adatta studio, pisolino e ora di letto a sonno e battito
+function energy(){const why=[];let e=1;const sl=sleepFor(new Date());
+ if(sl!=null){if(sl<6){e=0.5;why.push(`Hai dormito ${sl.toFixed(1).replace(".",",")} h: oggi studio ridotto, pisolino e letto prima.`)}else if(sl<7){e=0.75;why.push(`Hai dormito ${sl.toFixed(1).replace(".",",")} h: studio un po' ridotto, a blocchi brevi.`)}else why.push(`Hai dormito ${sl.toFixed(1).replace(".",",")} h: giornata piena.`)}else why.push("Nessun dato sul sonno di stanotte: premi i tasti in Sonno o importa i dati del Watch.");
+ const h=S.health[dk()]||S.health[dk(new Date(Date.now()-864e5))],r=Object.keys(S.health).sort().slice(-8,-1).map(k=>S.health[k].rhr).filter(v=>v!=null);
+ if(h&&h.rhr!=null&&r.length>=3){const a=r.reduce((x,y)=>x+y,0)/r.length;if(h.rhr>a+5){e=Math.min(e,0.75);why.push(`Battito a riposo più alto del solito (${Math.round(h.rhr)} contro ${Math.round(a)}): segnale di stanchezza.`)}}
+ const y=(S.study[dk(new Date(Date.now()-864e5))]||0)/3600;if(y>(S.set.study||5)*1.4){e=Math.min(e,0.75);why.push(`Ieri hai studiato ${y.toFixed(1).replace(".",",")} h: oggi carico più leggero per non bruciarti.`)}
+ return{e,why}}
+
 // ---------- orario e giornata tipo
 const DN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.getDay()).map(l=>[toMin(l.a),toMin(l.b),l]).sort((x,y)=>x[0]-y[0]);
@@ -454,12 +462,15 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
  const grp=[];les.forEach(l=>{const g=grp[grp.length-1];if(g&&l[0]-g[1]<=15){g[1]=Math.max(g[1],l[1]);g[2].push(l[2])}else grp.push([l[0],l[1],[l[2]]])});
  grp.forEach(g=>P.push([g[0],`<b>Lezioni</b> <span class="mute">${g[2].map(x=>esc(x.c)+(x.r?" ("+esc(x.r)+")":"")).join(", ")}</span>`,g[1]]));
  let lu=780;for(const m of [780,795,810,825,840,855,870,765,750,735,720])if(free(m,m+45)){lu=m;break}busy.push([lu,lu+45]);P.push([lu,"Pranzo",lu+45]);
- if(sp){busy.push([990,1180]);P.push([990,"Spuntino: banana o yogurt"],[1050,"Ping pong",1140],[1150,"Doccia"])}
+ if(sp){busy.push([970,1180]);P.push([970,"Spuntino: banana o yogurt + acqua"],[995,"Esci di casa per il ping pong"],[1050,"Ping pong",1140],[1150,"Doccia"])}
  else if(free(1110,1140)){busy.push([1110,1140]);P.push([1110,"Movimento: camminata 30 min",1140])}
  const di=sp?1185:1200;busy.push([di,di+45]);P.push([di,sp?"Cena di recupero":"Cena",di+45]);
  busy.sort((x,y)=>x[0]-y[0]);let c=bus&&!home?500:w+60;
- for(const x of [...busy,[1140,1140]]){const end=Math.min(x[0],1140)-10;if(end-c>=40)P.push([c,`Studio libero (${Math.floor((end-c)/60)}h${pad((end-c)%60)}${end-c>=100?", blocchi da 50 min + 10 di pausa":""})`,end]);c=Math.max(c,x[1]+10)}
- P.push([1260,"Ripasso leggero o tempo libero"],[b-30,"Schermi spenti, prepara lo zaino"],[b,sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
+ const en=dk(d)===dk()?energy():{e:1};let cap=Math.round((S.set.study||5)*60*en.e);
+ if(en.e<1){const nap=busy.find(x=>x[0]===lu);if(nap&&free(lu+50,lu+75)){busy.push([lu+50,lu+75]);P.push([lu+50,"Pisolino di 20 minuti (sveglia puntata)",lu+70])}}
+ busy.sort((x,y)=>x[0]-y[0]);
+ for(const x of [...busy,[1140,1140]]){let end=Math.min(x[0],1140)-10;if(end-c>=40){const len=Math.min(end-c,cap);if(len>=40){const lab=en.e<1?"Studio leggero":"Studio libero",bl=en.e<0.75?"blocchi da 25 min + 5 di pausa":"blocchi da 50 min + 10 di pausa";P.push([c,`${lab} (${Math.floor(len/60)}h${pad(len%60)}${len>=100||en.e<0.75?", "+bl:""})`,c+len]);cap-=len;if(end-c-len>=40)P.push([c+len+10,"Tempo libero o riposo",end])}else P.push([c,"Tempo libero o riposo",end])}c=Math.max(c,x[1]+10)}
+ const bed=en.e<=0.75?b-30:b;P.push([1260,sp?"Relax: gioca un po', niente studio":en.e<1?"Tempo libero, niente studio pesante":"Ripasso leggero o tempo libero"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
  return P.sort((x,y)=>x[0]-y[0])}
 function renderOrario(){const o=S.ora||[];$("or-week").innerHTML=[1,2,3,4,5,6].map(d=>{const l=o.map((x,i)=>[x,i]).filter(x=>x[0].d===d).sort((a,b)=>a[0].a<b[0].a?-1:1);return l.length?`<h3 style="margin-top:10px">${DN[d]}</h3><ul class="plain small">${l.map(([x,i])=>`<li class="row" style="justify-content:space-between"><span><span class="num">${x.a}–${x.b}</span> ${esc(x.c)} <span class="mute">${esc(x.r||"")}</span></span><button class="g small" data-ordel="${i}" style="padding:2px 8px">Togli</button></li>`).join("")}</ul>`:""}).join("")||'<p class="mute small">Nessuna lezione inserita.</p>'}
 $("f-or").onsubmit=e=>{e.preventDefault();const c=$("or-c").value.trim();if(!c||$("or-b").value<=$("or-a").value)return toast("Inserisci corso e orari validi");S.ora=S.ora||[];S.ora.push({d:+$("or-d").value,a:$("or-a").value,b:$("or-b").value,c,r:$("or-r").value.trim()});$("or-c").value="";$("or-r").value="";save();toast("Lezione aggiunta");render()};
@@ -497,7 +508,8 @@ function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
  renderTiles();
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
- const plan=planFor(new Date(),w,b);
+ const plan=planFor(new Date(),w,b),en=energy();
+ $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=en.why.join(" ");
  let ni=0;plan.forEach((p,i)=>{if(((now-p[0]+1440)%1440)<((now-plan[ni][0]+1440)%1440))ni=i});
  $("sched").innerHTML=plan.map((p,i)=>`<li class="${i===ni?"now":""}"><span class="num">${fromMin(p[0])}</span><span>${p[2]?`<span class="num mute">–${fromMin(p[2])}</span> `:""}${p[1]}</span></li>`).join("");
  renderOrario();
@@ -535,7 +547,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 15.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 16.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));
 if("serviceWorker"in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
