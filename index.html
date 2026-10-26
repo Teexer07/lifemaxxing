@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f6b4f">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+<title>Lifemaxxing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: app a schede, una colonna su telefono, due su desktop; barra schede in basso su mobile */
+:root{
+  --bg:#f3f5f2;--card:#ffffff;--fg:#17211c;--mute:#5f6d66;--line:#dbe2dd;
+  --acc:#1f6b4f;--acc2:#e3f1ea;--warn:#b5651d;--bad:#b23b3b;--good:#2f7d4a;
+  --f-d:"Bricolage Grotesque",system-ui,sans-serif;--f-b:"Atkinson Hyperlegible",system-ui,sans-serif;--f-m:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1512;--card:#18201c;--fg:#e6ece8;--mute:#93a39a;--line:#2a3530;--acc:#5cc497;--acc2:#1d3a2e;--warn:#e0a060;--bad:#ef7b7b;--good:#73c98f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1512;--card:#18201c;--fg:#e6ece8;--mute:#93a39a;--line:#2a3530;--acc:#5cc497;--acc2:#1d3a2e;--warn:#e0a060;--bad:#ef7b7b;--good:#73c98f;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--f-b);margin:0}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 96px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font:800 1.9rem/1.1 var(--f-d);margin:0;letter-spacing:-.02em}
+h2{font:700 1.25rem/1.2 var(--f-d);margin:0 0 8px;text-wrap:balance}
+h3{font:700 1rem var(--f-b);margin:0}
+.mute{color:var(--mute)}.small{font-size:.85rem}.num{font-family:var(--f-m);font-variant-numeric:tabular-nums}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;gap:2px;z-index:5;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+nav button{flex:1;min-width:0;max-width:120px;background:none;border:0;color:var(--mute);font:600 .74rem var(--f-b);padding:8px 2px;border-radius:10px;cursor:pointer}
+nav button[aria-selected="true"]{color:var(--acc);background:var(--acc2)}
+section{display:none;margin-top:16px}section.on{display:grid;gap:16px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tile b{display:block;font:700 1.6rem var(--f-m);font-variant-numeric:tabular-nums}
+.tile span{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--acc)}
+button.b,.b{font:700 .9rem var(--f-b);border:1px solid var(--acc);background:var(--acc);color:var(--card);padding:9px 14px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block}
+button.g{font:700 .9rem var(--f-b);border:1px solid var(--line);background:transparent;color:var(--fg);padding:9px 14px;border-radius:10px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+input[type=text],input[type=search],textarea{flex:1}
+ul.plain{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pill{font:600 .72rem var(--f-b);padding:2px 8px;border-radius:99px;background:var(--acc2);color:var(--acc);white-space:nowrap}
+.pill.I{background:#fde9d6;color:#8a4a12}.pill.M{background:#dfeaf8;color:#1f4f8a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.I{background:#4a2f17;color:#f3c08d}:root:not([data-theme="light"]) .pill.M{background:#1d3150;color:#a9c8f0}}
+:root[data-theme="dark"] .pill.I{background:#4a2f17;color:#f3c08d}:root[data-theme="dark"] .pill.M{background:#1d3150;color:#a9c8f0}
+details summary{cursor:pointer;font-weight:700}
+ol{padding-left:20px;margin:6px 0}
+.sched li{display:grid;grid-template-columns:56px 1fr;gap:8px}
+.sched li.now{color:var(--acc);font-weight:700}
+.chart{display:flex;align-items:flex-end;gap:6px;height:120px;border-bottom:1px solid var(--line);padding-top:8px}
+.chart div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px}
+.chart i{width:100%;max-width:34px;background:var(--acc);border-radius:4px 4px 0 0;min-height:2px}
+.chart small{font:500 .65rem var(--f-m);color:var(--mute)}
+.lbls{display:flex;gap:6px}.lbls small{flex:1;text-align:center;font:500 .7rem var(--f-m);color:var(--mute)}
+#player{aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border-radius:10px;overflow:hidden}
+#player iframe{width:100%;height:100%}
+.res{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:center;cursor:pointer;padding:4px;border-radius:8px}
+.res:hover{background:var(--acc2)}.res img{border-radius:6px}
+.big{font:800 2.6rem var(--f-m);font-variant-numeric:tabular-nums}
+.live{color:var(--good)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;z-index:9}
+@media (prefers-reduced-motion:no-preference){section.on{animation:in .2s ease-out}@keyframes in{from{opacity:.4;transform:translateY(4px)}}}
+</style>
+
+<div class="wrap">
+<header><h1>Lifemaxxing</h1><span class="mute small" id="today"></span></header>
+
+<section id="s-oggi" class="on">
+  <div class="tiles">
+    <div class="tile"><span>Studio oggi</span><b id="t-study">0:00</b><div class="bar"><i id="t-studybar"></i></div></div>
+    <div class="tile"><span>Sonno stanotte</span><b id="t-sleep">–</b></div>
+    <div class="tile"><span>Pasti registrati</span><b id="t-meals">0/3</b></div>
+    <div class="tile"><span>Passi (Watch)</span><b id="t-steps">–</b></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>La tua giornata</h2><ul class="plain sched" id="sched"></ul></div>
+    <div class="card"><h2>Menù di oggi</h2><ul class="plain" id="menu-mini"></ul><p class="small mute" id="tip"></p></div>
+    <div class="card"><h2>Da migliorare</h2><ul class="plain small" id="coach-mini"></ul></div>
+  </div>
+</section>
+
+<section id="s-pasti">
+  <div class="row"><h2 style="margin:0">Pasti di oggi</h2><span class="small mute">Spesa: <span class="pill I">In's</span> discount, <span class="pill M">Mercatò</span> fresco</span></div>
+  <div class="grid" id="meals"></div>
+  <div class="card"><h2>Ho mangiato altro</h2>
+    <form id="f-meal" class="row"><select id="m-type"><option>Colazione</option><option>Pranzo</option><option>Cena</option><option>Spuntino</option></select><input type="text" id="m-text" placeholder="Es. pizza margherita, 2 fette"><button class="b">Registra</button></form>
+    <ul class="plain small" id="meal-log" style="margin-top:10px"></ul></div>
+  <div class="card"><h2>Lista della spesa (prossimi 7 giorni)</h2><div class="grid" id="shop"></div></div>
+</section>
+
+<section id="s-sonno">
+  <div class="grid">
+    <div class="card"><h2>Sonno</h2>
+      <p class="mute small">Premi quando vai a letto e quando ti svegli, oppure importa i dati dell'Apple Watch dalla scheda Salute.</p>
+      <div class="row"><button class="b" id="sleep-go">Vado a dormire</button><button class="g" id="sleep-wake">Mi sono svegliato</button></div>
+      <p id="sleep-state" class="small"></p>
+      <details><summary class="small">Inserisci a mano</summary>
+        <form id="f-sleep" class="row" style="margin-top:8px"><label class="small">Letto <input type="datetime-local" id="sl-a"></label><label class="small">Sveglia <input type="datetime-local" id="sl-b"></label><button class="g">Salva</button></form></details>
+    </div>
+    <div class="card"><h2>Ultime 7 notti</h2><div class="chart" id="ch-sleep"></div><div class="lbls" id="lb-sleep"></div><p class="small mute" id="sleep-avg"></p></div>
+  </div>
+</section>
+
+<section id="s-studio">
+  <div class="grid">
+    <div class="card"><h2>Sessione di studio</h2>
+      <div class="big" id="st-clock">0:00:00</div>
+      <p class="small" id="st-state">Ferma. Avvia il timer o fai partire un video con la modalità studio attiva.</p>
+      <div class="row"><select id="st-subj"></select><button class="b" id="st-toggle">Avvia timer</button></div>
+      <label class="row small" style="margin-top:10px"><input type="checkbox" id="st-yt" checked> Conta come studio il tempo in cui il player sta suonando</label>
+    </div>
+    <div class="card"><h2>Ultimi 7 giorni</h2><div class="chart" id="ch-study"></div><div class="lbls" id="lb-study"></div><p class="small mute" id="study-avg"></p></div>
+  </div>
+  <div class="card"><h2>Musica e video</h2>
+    <form id="f-yt" class="row"><input type="search" id="yt-q" placeholder="Cerca su YouTube o incolla un link" value="lofi hip hop study"><button class="b">Cerca</button></form>
+    <p class="small mute" id="yt-note"></p>
+    <div class="grid" style="margin-top:10px"><div id="player"></div><ul class="plain" id="yt-res"></ul></div>
+  </div>
+  <div class="card"><h2>Registro sessioni</h2><ul class="plain small" id="st-log"></ul></div>
+</section>
+
+<section id="s-salute">
+  <div class="grid">
+    <div class="card"><h2>Dati da iPhone e Apple Watch</h2>
+      <p class="small">Un Comando Rapido legge Salute (sonno, battito, passi, calorie) e apre questa app con i dati. Le istruzioni sono nella guida. Puoi anche incollare qui il testo che produce:</p>
+      <form id="f-h" class="row"><input type="text" id="h-in" placeholder="LMX;2026-10-25;8432;72;58;7.3;410"><button class="b">Importa</button></form>
+      <p class="small mute">Formato: LMX;data;passi;battito medio;battito a riposo;ore di sonno;kcal attive</p>
+    </div>
+    <div class="card"><h2>Come stai andando</h2><ul class="plain small" id="coach"></ul></div>
+    <div class="card"><h2>Ultimi giorni</h2><div style="overflow-x:auto"><table class="small num" id="h-tab" style="width:100%;border-collapse:collapse"></table></div></div>
+  </div>
+</section>
+
+<section id="s-hobby">
+  <div class="grid">
+    <div class="card"><h2>I tuoi hobby</h2><p class="small mute">Registra il tempo: un hobby fisso scarica la testa e ti fa studiare meglio. Obiettivo in minuti a settimana.</p><ul class="plain" id="hb-list"></ul>
+      <form id="f-hb" class="row" style="margin-top:10px"><input type="text" id="hb-name" placeholder="Nuovo hobby"><input type="number" id="hb-goal" value="120" min="10" step="10" style="width:80px" aria-label="Minuti a settimana"><button class="g">Aggiungi</button></form></div>
+    <div class="card"><h2>Idee che aiutano lo studio</h2><ul class="plain small" id="hb-ideas"></ul></div>
+  </div>
+</section>
+
+<section id="s-dati">
+  <div class="grid">
+    <div class="card"><h2>Obiettivi</h2>
+      <form id="f-set" style="display:grid;gap:8px">
+        <label class="row small">Sveglia <input type="time" id="g-wake"></label>
+        <label class="row small">A letto <input type="time" id="g-bed"></label>
+        <label class="row small">Ore di studio al giorno <input type="number" id="g-study" min="0" max="14" step="0.5" style="width:90px"></label>
+        <label class="row small">Materie (separate da virgola) <input type="text" id="g-subj"></label>
+        <label class="row small">Chiave API YouTube (facoltativa) <input type="text" id="g-key" placeholder="AIza..."></label>
+        <button class="b">Salva obiettivi</button></form></div>
+    <div class="card"><h2>Backup</h2>
+      <p class="small">I dati restano solo su questo dispositivo. Copia il backup e incollalo sull'altro dispositivo per spostarli.</p>
+      <div class="row"><button class="g" id="bk-copy">Copia backup</button><button class="g" id="bk-load">Ripristina dal testo</button></div>
+      <textarea id="bk-txt" rows="4" style="width:100%;margin-top:8px" placeholder="Incolla qui il backup"></textarea></div>
+  </div>
+</section>
+</div>
+
+<nav role="tablist">
+  <button data-s="oggi" aria-selected="true">Oggi</button><button data-s="pasti">Pasti</button><button data-s="sonno">Sonno</button><button data-s="studio">Studio</button><button data-s="salute">Salute</button><button data-s="hobby">Hobby</button><button data-s="dati">Opzioni</button>
+</nav>
+
+<script>
+// ---------- ricette: I = In's (discount), M = Mercatò Local (fresco). Attrezzi: pentola, padella, bollitore, microonde opz.
+const R={
+col:[
+{n:"Latte e biscotti",t:2,k:380,tool:"nessuno",ing:[["Latte parz. scremato","250 ml","I"],["Biscotti secchi (tipo Oro Saiwa)","6","I"],["Banana","1","M"]],s:["Latte freddo o scaldato 1 min al microonde.","Inzuppa i biscotti. La banana a parte ti tiene sazio fino a pranzo."]},
+{n:"Pane e Nutella + latte",t:3,k:420,tool:"nessuno",ing:[["Pane in cassetta","2 fette","I"],["Crema di nocciole","1 cucchiaio raso","I"],["Latte","1 bicchiere","I"]],s:["Tosta il pane in padella se ti piace croccante.","Un cucchiaio raso di crema basta per due fette."]},
+{n:"Pancake facili",t:10,k:430,tool:"padella",ing:[["Preparato per pancake (o farina)","60 g","I"],["Uovo","1","I"],["Latte","80 ml","I"],["Miele o sciroppo d'acero","1 cucchiaio","I"]],s:["Sbatti tutto con la forchetta finché non ci sono grumi.","Padella antiaderente calda con una goccia d'olio: 1 mestolino per pancake, giralo quando fa le bollicine.","Miele sopra."]},
+{n:"Cereali al cioccolato e latte",t:2,k:370,tool:"nessuno",ing:[["Cereali al cioccolato (tipo Coco Pops)","40 g","I"],["Latte","250 ml","I"],["Mela","1","M"]],s:["Cereali nel latte, mela a parte da mangiare anche a lezione."]},
+{n:"Toast prosciutto e formaggio",t:6,k:400,tool:"padella",ing:[["Pane in cassetta","2 fette","I"],["Prosciutto cotto","2 fette","I"],["Sottilette","2","I"],["Succo di frutta","1 brick","I"]],s:["Farcisci il pane.","Padella senza olio, schiaccia con un coperchio, 2-3 min per lato."]},
+{n:"Yogurt alla frutta e cornflakes",t:2,k:350,tool:"nessuno",ing:[["Yogurt alla fragola o vaniglia","2 vasetti","I"],["Corn flakes","30 g","I"]],s:["Versa i corn flakes nello yogurt all'ultimo momento così restano croccanti."]},
+{n:"Brioche e cappuccino a casa",t:3,k:400,tool:"microonde o pentolino",ing:[["Brioche confezionate semplici","1","I"],["Latte","200 ml","I"],["Caffè solubile o orzo","1 cucchiaino","I"],["Arancia","1","M"]],s:["Scalda il latte 1 min e sciogli il solubile.","Una brioche, non due: l'arancia ti dà il resto."]}
+],
+pra:[
+{n:"Pasta al pomodoro",t:15,k:600,tool:"pentola + padella",ing:[["Pasta (penne o spaghetti)","100 g","I"],["Passata di pomodoro","150 g","I"],["Parmigiano grattugiato","1 cucchiaio","I"],["Olio, sale","q.b.","I"]],s:["Butta la pasta in acqua salata.","Passata in padella con olio e sale, 10 min.","Scola, mescola nel sugo, parmigiano sopra."]},
+{n:"Pasta al tonno",t:15,k:650,tool:"pentola + padella",ing:[["Pasta","100 g","I"],["Tonno sott'olio sgocciolato","1 scatoletta","I"],["Passata di pomodoro","150 g","I"]],s:["Pasta in acqua salata.","Passata in padella 8 min, poi il tonno 2 min.","Scola e mescola."]},
+{n:"Pasta burro e parmigiano",t:12,k:620,tool:"pentola",ing:[["Pasta","100 g","I"],["Burro","10 g","I"],["Parmigiano","2 cucchiai","I"],["Prosciutto cotto","2 fette","I"]],s:["Cuoci la pasta e tieni da parte un po' d'acqua.","Scola, aggiungi burro, parmigiano e un goccio d'acqua di cottura.","Prosciutto cotto a pezzetti dentro: proteine senza fatica."]},
+{n:"Pasta al ragù",t:20,k:700,tool:"pentola + padella",ing:[["Pasta","100 g","I"],["Macinato di manzo","100 g","M"],["Passata di pomodoro","150 g","I"]],s:["Rosola il macinato in padella 5 min con olio e sale.","Aggiungi la passata, 10 min.","Condisci la pasta. Il ragù avanzato dura 2 giorni in frigo."]},
+{n:"Panino con hamburger",t:12,k:650,tool:"padella",ing:[["Hamburger di manzo","1","M"],["Panino da hamburger","1","I"],["Sottiletta","1","I"],["Ketchup","1 cucchiaio","I"]],s:["Padella ben calda, burger 4 min per lato.","Sottiletta sopra l'ultimo minuto.","Nel panino con ketchup. Un frutto per finire."]},
+{n:"Riso al pomodoro e mozzarella",t:15,k:600,tool:"pentola + padella",ing:[["Riso","80 g","I"],["Passata di pomodoro","120 g","I"],["Mozzarella","1/2","I"]],s:["Lessa il riso 12 min.","Scaldalo nella passata in padella, aggiungi la mozzarella a cubetti finché fila."]},
+{n:"Piadina prosciutto e formaggio",t:6,k:580,tool:"padella",ing:[["Piadina","1","I"],["Prosciutto cotto","3 fette","I"],["Sottilette o stracchino","2","I"]],s:["Farcisci metà piadina e chiudila.","Padella 2 min per lato finché il formaggio fonde."]},
+{n:"Gnocchi al pomodoro",t:10,k:600,tool:"pentola + padella",ing:[["Gnocchi di patate","250 g","I"],["Passata di pomodoro","120 g","I"],["Parmigiano","1 cucchiaio","I"]],s:["Sugo in padella 5 min.","Gnocchi in acqua bollente: scola quando salgono a galla.","Saltali nel sugo."]},
+{n:"Pasta e piselli",t:15,k:620,tool:"pentola + padella",ing:[["Pasta corta","100 g","I"],["Piselli surgelati","80 g","I"],["Prosciutto cotto a cubetti","50 g","I"],["Parmigiano","1 cucchiaio","I"]],s:["Piselli in padella con olio e un po' d'acqua 8 min, poi prosciutto.","Unisci la pasta scolata e il parmigiano."]},
+{n:"Tortellini panna e prosciutto",t:10,k:680,tool:"pentola + padella",ing:[["Tortellini freschi","200 g","I"],["Panna da cucina light","50 ml","I"],["Prosciutto cotto","2 fette","I"]],s:["Tortellini in acqua salata come da confezione.","Panna e prosciutto in padella 2 min, unisci i tortellini. Cucina leggera: solo 50 ml di panna."]}
+],
+cen:[
+{n:"Cotoletta di pollo e patatine",t:20,k:650,tool:"padella",ing:[["Cotolette di pollo già impanate","2","I"],["Patate","2","M"],["Ketchup","q.b.","I"]],s:["Patate a bastoncini, in padella con un filo d'olio e coperchio 15 min girandole.","Cotolette in padella 4 min per lato.","Sale sulle patate a fine cottura."]},
+{n:"Pizza in padella",t:10,k:620,tool:"padella",ing:[["Piadina o base pizza","1","I"],["Passata di pomodoro","3 cucchiai","I"],["Mozzarella","1/2","I"],["Prosciutto cotto","2 fette","I"]],s:["Passata e mozzarella sulla piadina.","Padella a fuoco medio con coperchio 5-6 min.","Prosciutto sopra."]},
+{n:"Bastoncini di pesce e purè",t:15,k:560,tool:"padella + pentolino",ing:[["Bastoncini di pesce","6","I"],["Purè in fiocchi","1 busta piccola","I"],["Latte","200 ml","I"]],s:["Bastoncini in padella con un filo d'olio 5 min per lato.","Purè: latte caldo + fiocchi, mescola."]},
+{n:"Wurstel e patate",t:15,k:600,tool:"pentola + padella",ing:[["Wurstel di pollo","2","I"],["Patate","2","M"]],s:["Patate a cubetti lesse 12 min.","Wurstel a rondelle in padella 4 min, aggiungi le patate e fai dorare."]},
+{n:"Nuggets e mais",t:12,k:580,tool:"padella",ing:[["Nuggets di pollo surgelati","8","I"],["Mais in scatola","1/2 lattina","I"],["Pane","1 fetta","M"]],s:["Nuggets in padella antiaderente con un filo d'olio, 8-10 min girandoli.","Mais sgocciolato a parte."]},
+{n:"Uova al tegamino e pane",t:6,k:450,tool:"padella",ing:[["Uova","2","I"],["Pane","2 fette","M"],["Prosciutto cotto","2 fette","I"]],s:["Padella con un filo d'olio, rompi le uova, coperchio 3-4 min.","Pucciaci il pane."]},
+{n:"Petto di pollo e patate",t:20,k:560,tool:"pentola + padella",ing:[["Petto di pollo a fette","150 g","M"],["Patate","2","M"],["Ketchup o maionese","1 cucchiaio","I"]],s:["Patate lesse a cubetti 12 min.","Pollo in padella 3 min per lato con sale.","Patate in padella 3 min per farle dorare."]},
+{n:"Toast caldo e minestrina",t:10,k:500,tool:"padella + pentolino",ing:[["Pane in cassetta","2 fette","I"],["Prosciutto e sottilette","2 + 2","I"],["Pastina e dado vegetale","40 g","I"]],s:["Brodo con il dado, pastina 6 min.","Toast in padella 2-3 min per lato."]},
+{n:"Polpette al sugo",t:20,k:620,tool:"padella",ing:[["Polpette pronte di carne","6","M"],["Passata di pomodoro","200 g","I"],["Pane","1 fetta","M"]],s:["Passata in padella con olio e sale.","Aggiungi le polpette, coperchio 12-15 min girandole.","Scarpetta con il pane."]},
+{n:"Spiedini o fettine con purè",t:15,k:580,tool:"padella + pentolino",ing:[["Fettine di vitello o lonza","150 g","M"],["Purè in fiocchi","1 busta piccola","I"],["Latte","200 ml","I"]],s:["Fettine in padella calda 2 min per lato, sale alla fine.","Purè con latte caldo."]}
+],
+rec:[
+{n:"Pasta al ragù abbondante + latte al cioccolato",t:20,k:850,tool:"pentola + padella",ing:[["Pasta","130 g","I"],["Macinato di manzo","120 g","M"],["Passata di pomodoro","150 g","I"],["Latte al cioccolato","1 brick","I"]],s:["Rosola il macinato 5 min, aggiungi passata 10 min.","Porzione più grande del solito: dopo lo sport servono carboidrati per ricaricare i muscoli.","Il latte al cioccolato è un ottimo recupero (zuccheri + proteine)."]},
+{n:"Riso, pollo e mais",t:20,k:780,tool:"pentola + padella",ing:[["Riso","110 g","I"],["Petto di pollo","150 g","M"],["Mais","1/2 lattina","I"],["Yogurt alla frutta","1","I"]],s:["Lessa il riso 12 min.","Pollo a cubetti in padella 6-7 min con sale.","Unisci riso e mais, un filo d'olio. Yogurt come dessert."]},
+{n:"Panino con cotoletta + banana",t:15,k:820,tool:"padella",ing:[["Cotolette di pollo impanate","2","I"],["Panino grande","1","M"],["Sottiletta","1","I"],["Banana","1","M"]],s:["Cotolette in padella 4 min per lato.","Nel panino con la sottiletta e un po' di ketchup.","Banana per il potassio dopo la sudata."]},
+{n:"Pasta al tonno grande + yogurt",t:15,k:800,tool:"pentola + padella",ing:[["Pasta","130 g","I"],["Tonno sott'olio sgocciolato","1 scatoletta","I"],["Passata di pomodoro","150 g","I"],["Yogurt greco o alla frutta","1","I"]],s:["Come la pasta al tonno, ma con 130 g di pasta.","Yogurt dopo cena per altre proteine."]},
+{n:"Gnocchi al ragù + uovo sodo",t:20,k:800,tool:"pentola + padella",ing:[["Gnocchi","300 g","I"],["Macinato","100 g","M"],["Passata","150 g","I"],["Uovo","1","I"]],s:["Ragù veloce in padella.","Uovo in acqua bollente 9 min, insieme agli gnocchi che cuociono 2 min.","Condisci gli gnocchi, uovo a parte."]}
+]};
+const TIPS=["Bevi almeno 1,5 litri d'acqua: tieni una bottiglia sulla scrivania.","Spegni gli schermi 30 minuti prima di dormire: aiuta ad addormentarti prima.","Studia a blocchi di 50 minuti con 10 di pausa, lontano dal telefono.","Un frutto come spuntino vale più di un pacchetto di patatine.","La luce del mattino aiuta il ritmo sonno-veglia: apri le tende appena sveglio.","Cucina doppia dose a pranzo: metà è la cena di domani.","Caffè dopo le 16 peggiora il sonno: passa al deca.","Fai 20 minuti a piedi al giorno: anche andare al Poli a piedi conta."];
+
+// ---------- stato
+const K="lmx1";let S;
+try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){S={}}
+S=Object.assign({set:{wake:"07:00",bed:"23:30",study:5,subj:"Analisi,Fisica,Geometria,Informatica,Chimica",key:""},meals:[],sleep:[],study:{},sess:[],health:{},swap:{},sleepStart:null,hob:[{n:"Ping pong",g:180},{n:"Palestra o corsa",g:60},{n:"Lettura",g:120},{n:"Chitarra",g:90}],hlog:[]},S);
+if(!S.mig2){S.mig2=1;S.set.wake="07:00";if(!S.hob.some(h=>h.n==="Ping pong"))S.hob.unshift({n:"Ping pong",g:180})}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const dk=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const hm=s=>Math.floor(s/3600)+":"+pad(Math.floor(s%3600/60));
+const hms=s=>hm(s)+":"+pad(Math.floor(s%60));
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dayN=d=>Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)+d.getFullYear()*366;
+function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2200)}
+function last7(){const a=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d)}return a}
+const WD=["D","L","M","M","G","V","S"];
+
+// ---------- navigazione
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.s));
+function show(s){document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id==="s-"+s));document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.s===s));render()}
+
+// ---------- menù
+const sportDay=d=>[3,5].includes(d.getDay());
+function pick(type,d){const L=(type==="cen"&&sportDay(d)?R.rec:R[type]).filter(r=>!(S.no||[]).includes(r.n)),k=dk(d)+type;return L[(dayN(d)*({col:3,pra:7,cen:5}[type])+(S.swap[k]||0))%L.length]}
+const TN={col:"Colazione",pra:"Pranzo",cen:"Cena"};
+function recipeCard(type){const r=pick(type,new Date()),done=S.meals.some(m=>m.d===dk()&&m.type===TN[type]);
+return `<div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${type==="cen"&&sportDay(new Date())?"Cena di recupero (ping pong)":TN[type]}</span><span class="small mute num">${r.t} min · ~${r.k} kcal</span></div>
+<h2 style="margin-top:8px">${esc(r.n)}</h2><p class="small mute" style="margin:0 0 6px">Attrezzi: ${r.tool}</p>
+<ul class="plain small">${r.ing.map(i=>`<li class="row" style="justify-content:space-between"><span>${esc(i[0])} <span class="mute">${esc(i[1])}</span></span><span class="pill ${i[2]}">${i[2]==="I"?"In's":"Mercatò"}</span></li>`).join("")}</ul>
+<details style="margin-top:8px"><summary class="small">Ricetta</summary><ol class="small">${r.s.map(x=>`<li>${esc(x)}</li>`).join("")}</ol></details>
+<div class="row" style="margin-top:10px"><button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button><button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.dataset.swap){const k=dk()+t.dataset.swap;S.swap[k]=(S.swap[k]||0)+1;save();render()}
+ if(t.dataset.eat){const ty=TN[t.dataset.eat];if(!S.meals.some(m=>m.d===dk()&&m.type===ty)){S.meals.push({d:dk(),type:ty,txt:pick(t.dataset.eat,new Date()).n,at:Date.now(),plan:1});save();toast("Registrato");render()}}
+ if(t.dataset.no){S.no=S.no||[];if(R[t.dataset.no].length-S.no.filter(n=>R[t.dataset.no].some(r=>r.n===n)).length>3){S.no.push(pick(t.dataset.no,new Date()).n);save();toast("Non te lo propongo più");render()}else toast("Lasciami almeno 3 piatti")}
+ if(t.dataset.del){S.meals=S.meals.filter(m=>m.at!=t.dataset.del);save();render()}
+});
+$("f-meal").onsubmit=e=>{e.preventDefault();const v=$("m-text").value.trim();if(!v)return;S.meals.push({d:dk(),type:$("m-type").value,txt:v,at:Date.now()});$("m-text").value="";save();toast("Registrato");render()};
+function shopping(){const tot={I:{},M:{}};for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()+i);["col","pra","cen"].forEach(t=>pick(t,d).ing.forEach(g=>{const o=tot[g[2]];o[g[0]]=(o[g[0]]||0)+1}))}
+return ["I","M"].map(s=>`<div><h3><span class="pill ${s}">${s==="I"?"In's Mercato":"Mercatò Local"}</span></h3><ul class="small" style="margin:8px 0;padding-left:18px">${Object.entries(tot[s]).sort().map(([n,c])=>`<li>${esc(n)}${c>1?` <span class="mute">×${c}</span>`:""}</li>`).join("")}</ul></div>`).join("")}
+
+// ---------- sonno
+function sleepFor(d){const k=dk(d);const s=S.sleep.filter(x=>dk(new Date(x.b))===k);if(s.length)return s.reduce((a,x)=>a+(x.b-x.a),0)/36e5;const h=S.health[k];return h&&h.sl?+h.sl:null}
+$("sleep-go").onclick=()=>{S.sleepStart=Date.now();save();toast("Buonanotte");render()};
+$("sleep-wake").onclick=()=>{if(!S.sleepStart)return toast("Prima premi Vado a dormire");S.sleep.push({a:S.sleepStart,b:Date.now()});S.sleepStart=null;save();toast("Buongiorno");render()};
+$("f-sleep").onsubmit=e=>{e.preventDefault();const a=+new Date($("sl-a").value),b=+new Date($("sl-b").value);if(!(b>a))return toast("Controlla gli orari");S.sleep.push({a,b});save();toast("Salvato");render()};
+
+// ---------- studio
+let tRun=false,ytPlay=false,cur=null,player=null;
+const active=()=>tRun||(ytPlay&&$("st-yt").checked);
+function tick(){const on=active();
+ if(on){if(!cur)cur={a:Date.now(),s:0,subj:$("st-subj").value,src:tRun?"timer":"video"};cur.s++;S.study[dk()]=(S.study[dk()]||0)+1}
+ else if(cur){if(cur.s>=60)S.sess.push({a:cur.a,s:cur.s,subj:cur.subj,src:cur.src});cur=null;save();renderStudy()}
+ if(on){$("st-clock").textContent=hms(cur.s);$("st-state").innerHTML=`<span class="live">● Sto contando</span> ${tRun?"(timer)":"(video in riproduzione)"}`;if(cur.s%10===0)save();if(cur.s%60===0)renderTiles()}
+}
+setInterval(tick,1000);
+$("st-toggle").onclick=()=>{tRun=!tRun;$("st-toggle").textContent=tRun?"Ferma timer":"Avvia timer";if(!active()){$("st-state").textContent="Ferma."}};
+document.addEventListener("visibilitychange",save);
+// YouTube
+let ytReady=false;window.onYouTubeIframeAPIReady=()=>{ytReady=true};
+(()=>{const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";s.onerror=()=>noYT();document.head.append(s);setTimeout(()=>{if(!ytReady)noYT()},6000)})();
+function noYT(){if(ytReady)return;$("yt-note").textContent="Il player integrato non è disponibile in questa anteprima: funziona nella versione installata dell'app. Qui i risultati si aprono su YouTube e puoi usare il timer.";}
+function vid(u){const m=u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null)}
+function play(id){if(!ytReady){window.open("https://www.youtube.com/watch?v="+id,"_blank");return}
+ if(player){player.loadVideoById(id);return}
+ player=new YT.Player("player",{videoId:id,playerVars:{autoplay:1,playsinline:1},events:{onStateChange:e=>{ytPlay=e.data===1}}})}
+$("f-yt").onsubmit=async e=>{e.preventDefault();const q=$("yt-q").value.trim();const id=vid(q);if(id)return play(id);
+ const key=S.set.key;const L=$("yt-res");
+ if(!key){L.innerHTML=`<li class="small">Per cercare dentro l'app inserisci una chiave API YouTube gratuita in Impostazioni (vedi guida). Intanto: <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">cerca su YouTube</a>, copia il link del video e incollalo qui.</li>`;return}
+ try{const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(q)}&key=${key}`);const j=await r.json();if(j.error)throw j.error.message;
+ L.innerHTML=j.items.map(i=>`<li class="res" data-v="${i.id.videoId}"><img src="${i.snippet.thumbnails.default.url}" alt="" width="96"><span class="small">${i.snippet.title}<br><span class="mute">${i.snippet.channelTitle}</span></span></li>`).join("");
+ L.querySelectorAll(".res").forEach(x=>x.onclick=()=>play(x.dataset.v))}catch(err){L.innerHTML=`<li class="small">Ricerca non riuscita: ${esc(err)}. Controlla la chiave in Impostazioni.</li>`}};
+
+// ---------- salute
+function importH(t){const p=String(t).trim().split(";");if(p[0]!=="LMX"||!/^\d{4}-\d\d-\d\d$/.test(p[1]))return false;
+ const n=v=>v===undefined||v===""?null:parseFloat(String(v).replace(",","."));
+ S.health[p[1]]={st:n(p[2]),hr:n(p[3]),rhr:n(p[4]),sl:n(p[5]),kc:n(p[6])};save();return true}
+$("f-h").onsubmit=e=>{e.preventDefault();toast(importH($("h-in").value)?"Dati importati":"Formato non valido");$("h-in").value="";render()};
+try{const q=new URLSearchParams(location.search).get("h");if(q&&importH(q)){history.replaceState(null,"",location.pathname);setTimeout(()=>toast("Dati Salute importati"),300)}}catch(e){}
+
+// ---------- impostazioni e backup
+function fillSet(){const s=S.set;$("g-wake").value=s.wake;$("g-bed").value=s.bed;$("g-study").value=s.study;$("g-subj").value=s.subj;$("g-key").value=s.key;
+ $("st-subj").innerHTML=s.subj.split(",").map(x=>x.trim()).filter(Boolean).map(x=>`<option>${esc(x)}</option>`).join("")}
+$("f-set").onsubmit=e=>{e.preventDefault();Object.assign(S.set,{wake:$("g-wake").value,bed:$("g-bed").value,study:+$("g-study").value,subj:$("g-subj").value,key:$("g-key").value.trim()});save();fillSet();toast("Salvato");render()};
+$("bk-copy").onclick=()=>{const t=JSON.stringify(S);$("bk-txt").value=t;navigator.clipboard.writeText(t).then(()=>toast("Backup copiato"),()=>{$("bk-txt").select();toast("Seleziona e copia il testo")})};
+$("bk-load").onclick=()=>{try{const o=JSON.parse($("bk-txt").value);if(!o.set)throw 0;S=o;save();fillSet();render();toast("Ripristinato")}catch(e){toast("Backup non valido")}};
+
+// ---------- hobby
+const IDEAS=[["Corsa o palestra","3 uscite da 30-45 min: migliora sonno e concentrazione, è il più efficace per la memoria."],["Camminata senza telefono","20 min dopo pranzo: ricarica l'attenzione per il blocco del pomeriggio."],["Lettura (anche fumetti)","20 min prima di dormire al posto del telefono: ti addormenti prima."],["Strumento musicale","Allena concentrazione e pazienza; 15 min al giorno bastano."],["Scacchi","Logica e calcolo, utile per un ingegnere. Partite brevi su Lichess, non in sessione di studio."],["Cucinare","Una ricetta nuova a settimana: risparmi e mangi meglio."],["Progetto di coding o Arduino","Applica quello che studi al Poli e arricchisce il CV."],["Lingua (inglese)","10 min al giorno: serve per esami, Erasmus e lavoro."]];
+const wk=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return +d};
+const hobMin=n=>S.hlog.filter(x=>x.n===n&&x.at>=wk()).reduce((a,x)=>a+x.m,0);
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.dataset.hb){const[i,m]=t.dataset.hb.split("|");S.hlog.push({n:S.hob[i].n,m:+m,at:Date.now()});save();toast("+"+m+" min "+S.hob[i].n);render()}
+ if(t.dataset.hbdel){S.hob.splice(+t.dataset.hbdel,1);save();render()}
+ if(t.dataset.idea){if(!S.hob.some(h=>h.n===t.dataset.idea))S.hob.push({n:t.dataset.idea,g:120});save();toast("Aggiunto");render()}});
+$("f-hb").onsubmit=e=>{e.preventDefault();const n=$("hb-name").value.trim();if(!n)return;S.hob.push({n,g:+$("hb-goal").value||120});$("hb-name").value="";save();render()};
+function renderHobby(){
+ $("hb-list").innerHTML=S.hob.map((h,i)=>{const m=hobMin(h.n);return `<li><div class="row" style="justify-content:space-between"><b>${esc(h.n)}</b><span class="small num mute">${m}/${h.g} min sett.</span></div><div class="bar"><i style="width:${Math.min(100,m/h.g*100)}%"></i></div><div class="row" style="margin-top:6px"><button class="g small" data-hb="${i}|15">+15</button><button class="g small" data-hb="${i}|30">+30</button><button class="g small" data-hb="${i}|60">+60</button><button class="g small" data-hbdel="${i}">Togli</button></div></li>`}).join("")||'<li class="mute small">Aggiungi un hobby o scegline uno dalle idee.</li>';
+ $("hb-ideas").innerHTML=IDEAS.map(x=>`<li><b>${x[0]}</b> ${x[1]} <button class="g small" data-idea="${esc(x[0])}" style="padding:2px 8px">Aggiungi</button></li>`).join("")}
+
+// ---------- consigli automatici (regole, nessuna AI)
+function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boolean);
+ const sl=d7.map(sleepFor).filter(Boolean),avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ if(sl.length>=2){const a=avg(sl);out.push(a<7?["bad",`Dormi in media ${a.toFixed(1)} h: sotto le 7 h memoria e attenzione calano. Anticipa il letto di 30 min questa settimana.`]:["good",`Sonno medio ${a.toFixed(1)} h: ottimo, mantieni gli orari.`])}
+ else out.push(["mute","Servono almeno 2 notti di dati sul sonno (pulsanti in Sonno o Comando Rapido)."]);
+ const beds=S.sleep.slice(-7).map(x=>{const d=new Date(x.a);let m=d.getHours()*60+d.getMinutes();return m<720?m+1440:m});
+ if(beds.length>=3){const sd=Math.sqrt(avg(beds.map(b=>(b-avg(beds))**2)));if(sd>45)out.push(["bad",`Vai a letto a orari molto diversi (±${Math.round(sd)} min). Orari regolari valgono quanto le ore di sonno.`]);const late=avg(beds)-toMin(S.set.bed);if(late>30)out.push(["bad",`In media vai a letto ${Math.round(late)} min dopo il tuo obiettivo delle ${S.set.bed}.`])}
+ const st=H.map(h=>h.st).filter(v=>v!=null);if(st.length){const a=avg(st);out.push(a<7000?["bad",`${Math.round(a)} passi al giorno: punta a 8.000. Vai al Poli a piedi o fai 20 min di camminata.`]:["good",`${Math.round(a)} passi al giorno: bene.`])}
+ const r=H.map(h=>h.rhr).filter(v=>v!=null);if(r.length>=3){const a=avg(r.slice(0,-1)),l=r[r.length-1];if(l>a+5)out.push(["bad",`Battito a riposo più alto del solito (${l} contro ${Math.round(a)}): spesso è stanchezza, stress o poco sonno. Oggi studia leggero e dormi presto.`])}
+ const sv=d7.map(d=>(S.study[dk(d)]||0)/3600),days=sv.filter(v=>v>0).length;if(days)out.push(avg(sv)<S.set.study*.7?["bad",`Studi in media ${avg(sv).toFixed(1)} h su ${S.set.study} h di obiettivo. Prova due blocchi da 50 min appena dopo colazione.`]:["good",`Studio medio ${avg(sv).toFixed(1)} h al giorno: in linea con l'obiettivo.`]);
+ const bf=d7.filter(d=>S.meals.some(m=>m.d===dk(d)&&m.type==="Colazione")).length;if(S.meals.length&&bf<5)out.push(["bad",`Colazione registrata solo ${bf} giorni su 7: saltarla ti fa arrivare a pranzo affamato e senza concentrazione.`]);
+ const hm_=S.hob.reduce((a,h)=>a+hobMin(h.n),0);if(new Date().getDay()>=4&&hm_<60)out.push(["bad","Questa settimana quasi niente hobby: 30 min di sport o lettura ti fanno rendere di più nello studio."]);
+ return out}
+const CC={bad:"var(--warn)",good:"var(--good)",mute:"var(--mute)"};
+const coachHtml=a=>a.map(x=>`<li style="border-left:3px solid ${CC[x[0]]};padding-left:8px">${x[1]}</li>`).join("");
+
+// ---------- render
+function chart(el,lb,vals,fmt){const mx=Math.max(...vals,1);$(el).innerHTML=vals.map(v=>`<div><small>${v?fmt(v):""}</small><i style="height:${v/mx*85}%"></i></div>`).join("");$(lb).innerHTML=last7().map(d=>`<small>${WD[d.getDay()]}</small>`).join("")}
+function toMin(t){const[a,b]=t.split(":").map(Number);return a*60+b}
+function fromMin(m){m=(m+1440)%1440;return pad(Math.floor(m/60))+":"+pad(m%60)}
+function renderTiles(){const st=S.study[dk()]||0,g=S.set.study*3600;$("t-study").textContent=hm(st);$("t-studybar").style.width=Math.min(100,st/g*100)+"%";
+ const sl=sleepFor(new Date());$("t-sleep").textContent=sl?sl.toFixed(1)+" h":"–";
+ $("t-meals").textContent=new Set(S.meals.filter(m=>m.d===dk()&&m.type!=="Spuntino").map(m=>m.type)).size+"/3";
+ const h=S.health[dk()]||S.health[dk(new Date(Date.now()-864e5))];$("t-steps").textContent=h&&h.st?Math.round(h.st).toLocaleString("it-IT"):"–"}
+function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("ch-study","lb-study",v,x=>x.toFixed(1));$("study-avg").textContent=`Media ${(v.reduce((a,b)=>a+b)/7).toFixed(1)} h al giorno · obiettivo ${S.set.study} h`;
+ $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
+function render(){
+ $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+ renderTiles();
+ const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
+ const plan=sportDay(new Date())?[[w,"Sveglia, acqua e luce naturale"],[w+15,"Colazione, poi verso il Poli"],[w+120,"Lezioni / studio blocco 1"],[780,"Pranzo"],[870,"Studio blocco 2"],[990,"Spuntino: banana o yogurt + acqua"],[1050,"Ping pong fino alle 19:00"],[1150,"Doccia"],[1185,"Cena di recupero"],[1260,"Ripasso leggero o tempo libero"],[b-30,"Schermi spenti, prepara lo zaino"],[b,"A letto: dopo lo sport il sonno conta doppio"]]:[[w,"Sveglia, acqua e luce naturale"],[w+15,"Colazione, poi verso il Poli"],[w+120,"Lezioni / studio blocco 1"],[780,"Pranzo"],[870,"Studio blocco 2"],[1080,"Movimento: camminata 20-30 min"],[1200,"Cena"],[1260,"Ripasso leggero o tempo libero"],[b-30,"Schermi spenti, prepara lo zaino"],[b,"A letto"]];
+ let ni=0;plan.forEach((p,i)=>{if(((now-p[0]+1440)%1440)<((now-plan[ni][0]+1440)%1440))ni=i});
+ $("sched").innerHTML=plan.map((p,i)=>`<li class="${i===ni?"now":""}"><span class="num">${fromMin(p[0])}</span><span>${p[1]}</span></li>`).join("");
+ $("menu-mini").innerHTML=["col","pra","cen"].map(t=>`<li class="row" style="justify-content:space-between"><span><b>${TN[t]}</b> ${esc(pick(t,new Date()).n)}</span><span class="small mute num">${pick(t,new Date()).t}'</span></li>`).join("");
+ $("tip").textContent="Consiglio: "+TIPS[dayN(new Date())%TIPS.length];
+ $("meals").innerHTML=["col","pra","cen"].map(recipeCard).join("");
+ $("meal-log").innerHTML=S.meals.filter(m=>m.d===dk()).map(m=>`<li class="row" style="justify-content:space-between"><span><b>${m.type}</b> ${esc(m.txt)}</span><button class="g small" data-del="${m.at}" style="padding:2px 8px">Togli</button></li>`).join("")||'<li class="mute">Ancora niente oggi.</li>';
+ $("shop").innerHTML=shopping();
+ const sv=last7().map(d=>sleepFor(d)||0);chart("ch-sleep","lb-sleep",sv,x=>x.toFixed(1));const n=sv.filter(Boolean);$("sleep-avg").textContent=n.length?`Media ${(n.reduce((a,c)=>a+c)/n.length).toFixed(1)} h · obiettivo 7,5-8 h`:"Nessun dato ancora.";
+ $("sleep-state").textContent=S.sleepStart?"A letto dalle "+new Date(S.sleepStart).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"";
+ renderStudy();renderHobby();const co=coach();$("coach").innerHTML=coachHtml(co);$("coach-mini").innerHTML=coachHtml(co.filter(x=>x[0]==="bad").slice(0,3))||'<li class="mute">Niente da segnalare: continua così.</li>';
+ const hk=Object.keys(S.health).sort().reverse().slice(0,10);
+ $("h-tab").innerHTML=hk.length?`<tr class="mute" style="text-align:left"><th>Data</th><th>Passi</th><th>BPM</th><th>Riposo</th><th>Sonno</th><th>kcal</th></tr>`+hk.map(k=>{const h=S.health[k];const f=v=>v==null?"–":Math.round(v*10)/10;return `<tr style="border-top:1px solid var(--line)"><td>${k.slice(5)}</td><td>${f(h.st)}</td><td>${f(h.hr)}</td><td>${f(h.rhr)}</td><td>${f(h.sl)}</td><td>${f(h.kc)}</td></tr>`}).join(""):'<tr><td class="mute">Nessun dato importato.</td></tr>';
+}
+fillSet();render();
+if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));
+if("serviceWorker"in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
