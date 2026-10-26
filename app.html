@@ -123,6 +123,7 @@ ol{padding-left:20px;margin:6px 0}
 </section>
 
 <section id="s-studio">
+  <div class="card" id="sc-card"><h2 id="sc-h">Oggi ti consiglio</h2><ul class="plain" id="sc-list"></ul><p class="small mute" id="sc-ex" style="margin-bottom:0"></p></div>
   <div class="grid">
     <div class="card"><h2>Sessione di studio</h2>
       <div class="big" id="st-clock">0:00:00</div>
@@ -177,7 +178,7 @@ ol{padding-left:20px;margin:6px 0}
     <div class="card"><h2>Prove ed esami</h2><p class="small mute">Più una prova si avvicina, più la materia prende spazio nello studio: dai 10 giorni prima per le prove in itinere, dai 21 per gli esami. Le altre materie non spariscono mai, e quelle "da non lasciare indietro" (in Opzioni) hanno sempre una quota in più. Se una materia è rimasta indietro nelle sessioni registrate, riceve tempo di recupero.</p>
       <ul class="plain small" id="pv-list"></ul>
       <form id="f-pv" class="row" style="margin-top:10px"><select id="pv-k" aria-label="Tipo"><option value="P">Prova in itinere</option><option value="E">Esame</option></select><input type="date" id="pv-d" aria-label="Data"><input type="text" id="pv-c" list="pv-subs" placeholder="Materia"><datalist id="pv-subs"></datalist><input type="time" id="pv-a" aria-label="Ora (facoltativa)"><button class="b">Aggiungi</button></form></div>
-    <div class="card"><h2>Ripartizione dello studio</h2><ul class="plain small" id="pv-plan"></ul></div>
+    <div class="card"><h2>Studio dei prossimi 7 giorni</h2><ul class="plain small" id="pv-plan"></ul></div>
   </div>
 </section>
 
@@ -527,7 +528,7 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
  const st=P.filter(p=>p[3]==="S");if(st.length){const sb=subjW(d),U=25,tot=st.reduce((a,p)=>a+p[2]-p[0],0),n=Math.floor(tot/U),W=sb.reduce((a,x)=>a+x.w,0)||1;
   let al=sb.map(x=>({n:x.n,u:Math.floor(n*x.w/W),r:(n*x.w/W)%1}));let lf=n-al.reduce((a,x)=>a+x.u,0);al.sort((a,b)=>b.r-a.r).forEach(x=>{if(lf>0){x.u++;lf--}});al=al.filter(x=>x.u>0).sort((a,b)=>b.u-a.u).map(x=>({n:x.n,m:x.u*U}));
   st.forEach(p=>{let len=p[2]-p[0];const parts=[];while(len>=U&&al.length){const x=al[0],tk=Math.min(x.m,Math.floor(len/U)*U);parts.push([x.n,tk]);x.m-=tk;len-=tk;if(x.m<=0)al.shift()}
-   if(parts.length)p[1]=`<b>${en.e<1?"Studio leggero":"Studio"}</b>: ${parts.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}${p[2]-p[0]>=100||en.e<0.75?` <span class="mute">(${p[4]})</span>`:""}`})}
+   p[5]=parts;if(parts.length)p[1]=`<b>${en.e<1?"Studio leggero":"Studio"}</b>: ${parts.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}${p[2]-p[0]>=100||en.e<0.75?` <span class="mute">(${p[4]})</span>`:""}`})}
  if((S.exams||[]).some(x=>dDiff(x.d,dk(d))===1))P.push([1230,"Sera prima della prova: solo ripasso leggero degli schemi, niente cose nuove"]);
  const bed=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b;P.push([1260,sp?"Relax: gioca un po', niente studio":en.e<1?"Tempo libero, niente studio pesante":"Ripasso leggero o tempo libero"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
  return P.sort((x,y)=>x[0]-y[0])}
@@ -553,12 +554,21 @@ function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boo
 const CC={bad:"var(--warn)",good:"var(--good)",mute:"var(--mute)"};
 const coachHtml=a=>a.map(x=>`<li style="border-left:3px solid ${CC[x[0]]};padding-left:8px">${x[1]}</li>`).join("");
 
+// ---------- consiglio di studio per materia (dalla giornata di oggi)
+function studyAdvice(d){const w=toMin(S.set.wake),b=toMin(S.set.bed),P=planFor(d,w,b),tot={};P.forEach(p=>(p[5]||[]).forEach(([n,m])=>tot[n]=(tot[n]||0)+m));
+ const rev=P.find(p=>/Ripasso a caldo/.test(p[1]));return{tot,rev:rev?rev[2]-rev[0]:0}}
+function renderAdvice(){const a=studyAdvice(new Date()),L=Object.entries(a.tot).sort((x,y)=>y[1]-x[1]),sum=L.reduce((s,x)=>s+x[1],0)+a.rev;
+ const since=new Date();since.setHours(0,0,0,0);const done={};(S.sess||[]).filter(s=>s.a>=+since).forEach(s=>{const n=nsub(s.subj);done[n]=(done[n]||0)+s.s/60});if(cur&&cur.subj){const n=nsub(cur.subj);done[n]=(done[n]||0)+cur.s/60}
+ $("sc-h").textContent=sum?`Oggi ti consiglio di studiare ${fdur(sum)}`:"Oggi niente studio in programma";
+ $("sc-list").innerHTML=L.map(([n,m])=>{const dn=Math.round(done[n]||0);return `<li><div class="row" style="justify-content:space-between"><b>${esc(n)}</b><span class="num small">${fdur(dn)} / ${fdur(m)}</span></div><div class="bar"><i style="width:${Math.min(100,dn/m*100)}%"></i></div></li>`}).join("")+(a.rev?`<li class="small">+ <b>Ripasso a caldo</b> dopo lezione: ${fdur(a.rev)}</li>`:"")||'<li class="small mute">Oggi la giornata è piena (lezioni, sport o riposo).</li>';
+ $("sc-ex").textContent=[examNote(),"Scegli la materia nel menu qui sotto prima di avviare il timer: così il conteggio torna e le materie rimaste indietro recuperano."].filter(Boolean).join(" ")}
+
 // ---------- prove
 function renderProve(){const k=dk(),L=(S.exams||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
  $("pv-list").innerHTML=L.map(x=>{const g=dDiff(x.d,k);return `<li class="row" style="justify-content:space-between;${g<0?"opacity:.5":""}"><span><span class="pill ${x.k==="E"?"M":""}">${x.k==="E"?"Esame":"Prova"}</span> <b>${esc(x.c)}</b> ${new Date(x.d+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})}${x.a?" ore "+x.a:""} <span class="pill ${g>=0&&g<=3?"I":""}">${g<0?"fatta":g===0?"oggi":g===1?"domani":"tra "+g+" gg"}</span></span><button class="g small" data-pvdel="${x.id}" style="padding:2px 8px">Togli</button></li>`}).join("")||'<li class="mute">Nessuna prova inserita.</li>';
  const subs=subjList();$("pv-subs").innerHTML=subs.map(n=>`<option value="${esc(n)}">`).join("");
  if(!tRun){const cur_=$("st-subj").value;$("st-subj").innerHTML=subs.map(n=>`<option${n===cur_?" selected":""}>${esc(n)}</option>`).join("")}
- $("pv-plan").innerHTML=[0,1,2,3,4,5,6].map(i=>{const d=new Date();d.setDate(d.getDate()+i);const w=subjW(d),W=w.reduce((a,x)=>a+x.w,0);return `<li><b>${dayLbl(d,i)}</b>: ${w.map(x=>esc(x.n)+" "+Math.round(x.w/W*100)+"%").join(" · ")}</li>`}).join("")}
+ $("pv-plan").innerHTML=[0,1,2,3,4,5,6].map(i=>{const d=new Date();d.setDate(d.getDate()+i);const a=studyAdvice(d),L=Object.entries(a.tot).sort((x,y)=>y[1]-x[1]);return `<li><b>${dayLbl(d,i)}</b>: ${L.length?L.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · "):"niente studio"}</li>`}).join("")}
 $("f-pv").onsubmit=e=>{e.preventDefault();const d=$("pv-d").value,c=$("pv-c").value.trim();if(!d||!c)return toast("Inserisci data e materia");S.exams=S.exams||[];S.exams.push({id:Date.now(),d,c,a:$("pv-a").value||"",k:$("pv-k").value});$("pv-c").value="";$("pv-a").value="";save();toast("Aggiunta");render()};
 document.addEventListener("click",e=>{if(e.target.dataset.pvdel){S.gone=S.gone||[];S.gone.push(+e.target.dataset.pvdel);S.exams=(S.exams||[]).filter(x=>x.id!=e.target.dataset.pvdel);save();render()}});
 
@@ -608,7 +618,7 @@ function render(){
  $("shop").innerHTML=shopping();
  const sv=last7().map(d=>sleepFor(d)||0);chart("ch-sleep","lb-sleep",sv,x=>x.toFixed(1));const n=sv.filter(Boolean);$("sleep-avg").textContent=n.length?`Media ${(n.reduce((a,c)=>a+c)/n.length).toFixed(1)} h · obiettivo 7,5-8 h`:"Nessun dato ancora.";
  $("sleep-state").textContent=S.sleepStart?"A letto dalle "+new Date(S.sleepStart).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"";
- renderStudy();renderHobby();renderBudget();renderQA();renderCasa();renderProve();const co=coach();$("coach").innerHTML=coachHtml(co);$("coach-mini").innerHTML=coachHtml(co.filter(x=>x[0]==="bad").slice(0,3))||'<li class="mute">Niente da segnalare: continua così.</li>';
+ renderStudy();renderHobby();renderBudget();renderQA();renderCasa();renderProve();renderAdvice();const co=coach();$("coach").innerHTML=coachHtml(co);$("coach-mini").innerHTML=coachHtml(co.filter(x=>x[0]==="bad").slice(0,3))||'<li class="mute">Niente da segnalare: continua così.</li>';
  const hk=Object.keys(S.health).sort().reverse().slice(0,10);
  $("h-tab").innerHTML=hk.length?`<tr class="mute" style="text-align:left"><th>Data</th><th>Passi</th><th>BPM</th><th>Riposo</th><th>Sonno</th><th>kcal</th></tr>`+hk.map(k=>{const h=S.health[k];const f=v=>v==null?"–":Math.round(v*10)/10;return `<tr style="border-top:1px solid var(--line)"><td>${k.slice(5)}</td><td>${f(h.st)}</td><td>${f(h.hr)}</td><td>${f(h.rhr)}</td><td>${f(h.sl)}</td><td>${f(h.kc)}</td></tr>`}).join(""):'<tr><td class="mute">Nessun dato importato.</td></tr>';
 }
@@ -635,7 +645,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 20.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 21.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
