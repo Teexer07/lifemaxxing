@@ -1,4 +1,4 @@
-const CACHE = "lmx-v1";
+const CACHE = "lmx-v2";
 const ASSETS = ["./", "index.html", "manifest.json", "icon.svg"];
 
 self.addEventListener("install", e => {
