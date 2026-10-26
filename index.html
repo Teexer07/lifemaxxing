@@ -178,6 +178,11 @@ ol{padding-left:20px;margin:6px 0}
         <label class="row small">Materie (separate da virgola) <input type="text" id="g-subj"></label>
         <label class="row small">Chiave API YouTube (facoltativa) <input type="text" id="g-key" placeholder="AIza..."></label>
         <button class="b">Salva obiettivi</button></form></div>
+    <div class="card"><h2>Sincronizzazione</h2>
+      <p class="small">Tiene gli stessi dati su iPhone, iPad e PC salvandoli in un gist privato del tuo account GitHub. Si fa una volta per dispositivo:</p>
+      <ol class="small"><li>Apri <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Lifemaxxing" target="_blank" rel="noopener">questa pagina di GitHub</a>, in Expiration scegli "No expiration" e premi "Generate token".</li><li>Copia il codice che inizia con ghp_ e incollalo qui. Sugli altri dispositivi incolla lo stesso codice.</li></ol>
+      <form id="f-sync" class="row"><input type="text" id="sy-tok" placeholder="ghp_..." autocomplete="off"><button class="b">Collega</button></form>
+      <p class="small mute" id="sy-st"></p></div>
     <div class="card"><h2>Backup</h2>
       <p class="small">I dati restano solo su questo dispositivo. Copia il backup e incollalo sull'altro dispositivo per spostarli.</p>
       <div class="row"><button class="g" id="bk-copy">Copia backup</button><button class="g" id="bk-load">Ripristina dal testo</button></div>
@@ -242,7 +247,8 @@ const K="lmx1";let S;
 try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){S={}}
 S=Object.assign({set:{wake:"07:00",bed:"23:30",study:5,subj:"Analisi,Fisica,Geometria,Informatica,Chimica",key:""},meals:[],sleep:[],study:{},sess:[],health:{},swap:{},sleepStart:null,hob:[{n:"Ping pong",g:180},{n:"Palestra o corsa",g:60},{n:"Lettura",g:120},{n:"Chitarra",g:90}],hlog:[],ora:[]},S);
 if(!S.mig2){S.mig2=1;S.set.wake="07:00";if(!S.hob.some(h=>h.n==="Ping pong"))S.hob.unshift({n:"Ping pong",g:180})}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+let snap={};const snapAll=()=>{for(const k in S)if(k!=="ts")snap[k]=JSON.stringify(S[k])};snapAll();
+const save=(remote)=>{if(!remote){S.ts=S.ts||{};const n=Date.now();for(const k in S)if(k!=="ts"&&JSON.stringify(S[k])!==snap[k]){S.ts[k]=n;snap[k]=JSON.stringify(S[k])}}else snapAll();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}if(!remote&&typeof schedPush==="function")schedPush()};
 const $=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,"0");
 const dk=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -272,7 +278,7 @@ document.addEventListener("click",e=>{const t=e.target;
  if(t.dataset.swap){const k=dk()+t.dataset.swap;S.swap[k]=(S.swap[k]||0)+1;save();render()}
  if(t.dataset.eat){const ty=TN[t.dataset.eat];if(!S.meals.some(m=>m.d===dk()&&m.type===ty)){S.meals.push({d:dk(),type:ty,txt:pick(t.dataset.eat,new Date()).n,at:Date.now(),plan:1});save();toast("Registrato");render()}}
  if(t.dataset.no){S.no=S.no||[];if(R[t.dataset.no].length-S.no.filter(n=>R[t.dataset.no].some(r=>r.n===n)).length>3){S.no.push(pick(t.dataset.no,new Date()).n);save();toast("Non te lo propongo più");render()}else toast("Lasciami almeno 3 piatti")}
- if(t.dataset.del){S.meals=S.meals.filter(m=>m.at!=t.dataset.del);save();render()}
+ if(t.dataset.del){S.gone=S.gone||[];S.gone.push(+t.dataset.del);S.meals=S.meals.filter(m=>m.at!=t.dataset.del);save();render()}
 });
 $("f-meal").onsubmit=e=>{e.preventDefault();const v=$("m-text").value.trim();if(!v)return;S.meals.push({d:dk(),type:$("m-type").value,txt:v,at:Date.now()});$("m-text").value="";save();toast("Registrato");render()};
 const fq=(q,u)=>u==="q.b."?"q.b.":(q===0.5?"½":String(Math.round(q*10)/10).replace(".",","))+" "+u;
@@ -450,7 +456,30 @@ function render(){
  const hk=Object.keys(S.health).sort().reverse().slice(0,10);
  $("h-tab").innerHTML=hk.length?`<tr class="mute" style="text-align:left"><th>Data</th><th>Passi</th><th>BPM</th><th>Riposo</th><th>Sonno</th><th>kcal</th></tr>`+hk.map(k=>{const h=S.health[k];const f=v=>v==null?"–":Math.round(v*10)/10;return `<tr style="border-top:1px solid var(--line)"><td>${k.slice(5)}</td><td>${f(h.st)}</td><td>${f(h.hr)}</td><td>${f(h.rhr)}</td><td>${f(h.sl)}</td><td>${f(h.kc)}</td></tr>`}).join(""):'<tr><td class="mute">Nessun dato importato.</td></tr>';
 }
-fillSet();render();
+// ---------- sincronizzazione con gist privato GitHub
+const FN="lifemaxxing-data.json";let tok="",gid="",pulled=false,pushT=null;
+try{tok=localStorage.getItem("lmx-tok")||"";gid=localStorage.getItem("lmx-gist")||""}catch(e){}
+const gh=(u,o={})=>fetch("https://api.github.com"+u,Object.assign({},o,{headers:{Authorization:"token "+tok,Accept:"application/vnd.github+json"}})).then(r=>{if(!r.ok)throw new Error(r.status===401?"codice non valido o scaduto":"errore "+r.status);return r.json()});
+function syncSt(t){$("sy-st").textContent=t}
+function uni(a,b,k){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>m.set(x[k],x));return[...m.values()]}
+function merge(R){const L=S,lt=L.ts||{},rt=R.ts||{},o={ts:{}};
+ new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const useR=(rt[k]||0)>(lt[k]||0)||!(k in L);o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
+ o.gone=[...new Set([...(L.gone||[]),...(R.gone||[])])];o.meals=uni(L.meals,R.meals,"at").filter(m=>!o.gone.includes(m.at));
+ o.sleep=uni(L.sleep,R.sleep,"a");o.sess=uni(L.sess,R.sess,"a");o.hlog=uni(L.hlog,R.hlog,"at");
+ o.study={};new Set([...Object.keys(L.study||{}),...Object.keys(R.study||{})]).forEach(k=>o.study[k]=Math.max((L.study||{})[k]||0,(R.study||{})[k]||0));
+ o.health=Object.assign({},L.health,R.health);return o}
+async function pull(){if(!tok)return;try{syncSt("Sincronizzo...");
+ if(!gid){const l=await gh("/gists?per_page=100");const g=l.find(x=>x.files&&x.files[FN]);if(g){gid=g.id;localStorage.setItem("lmx-gist",gid)}}
+ if(gid){const g=await gh("/gists/"+gid);const f=g.files[FN];const txt=f.truncated?await fetch(f.raw_url).then(r=>r.text()):f.content;S=merge(JSON.parse(txt));save(true);fillSet();render()}
+ pulled=true;await push();}catch(e){syncSt("Sincronizzazione non riuscita: "+e.message)}}
+async function push(){if(!tok||!pulled)return;try{const body=JSON.stringify({files:{[FN]:{content:JSON.stringify(S)}}});
+ if(gid)await gh("/gists/"+gid,{method:"PATCH",body});else{const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Dati Lifemaxxing",public:false,files:{[FN]:{content:JSON.stringify(S)}}})});gid=g.id;localStorage.setItem("lmx-gist",gid)}
+ syncSt("Sincronizzato alle "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}catch(e){syncSt("Sincronizzazione non riuscita: "+e.message)}}
+let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=setTimeout(()=>{lastPush=Date.now();push()},Math.max(2500,30000-(Date.now()-lastPush)))}
+$("f-sync").onsubmit=e=>{e.preventDefault();const v=$("sy-tok").value.trim();if(!/^gh[pousr]_|^github_pat_/.test(v))return toast("Il codice deve iniziare con ghp_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
+syncSt(tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.");
+fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));
 if("serviceWorker"in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
