@@ -165,7 +165,23 @@ ol{padding-left:20px;margin:6px 0}
 <section id="s-salute">
   <div class="grid">
     <div class="card"><h2>Dati da iPhone e Apple Watch</h2>
-      <p class="small">Un Comando Rapido legge Salute (sonno, battito, passi, calorie) e apre questa app con i dati. Le istruzioni sono nella guida. Puoi anche incollare qui il testo che produce:</p>
+      <p class="small">Un Comando Rapido sull'iPhone legge Salute (sonno, battito a riposo, passi, calorie) due volte al giorno e li manda nel tuo gist: l'app li prende da sola alla prossima apertura, su tutti i dispositivi.</p>
+      <p class="small" id="hk-st"></p>
+      <details class="small"><summary><b>Configura il Comando Rapido (una volta sola)</b></summary>
+      <div class="row" style="margin:8px 0;gap:6px"><button type="button" class="g small" id="hk-gid">Copia ID gist</button><button type="button" class="g small" id="hk-tok">Copia token</button></div>
+      <ol style="padding-left:18px">
+      <li>App <b>Comandi</b> → <b>+</b> → nome "Lifemaxxing Salute".</li>
+      <li><b>Trova campioni di Salute</b>: Tipo <i>Passi</i>, Data di inizio <i>è oggi</i>. Poi <b>Calcola statistiche</b>: <i>Somma</i>. Poi <b>Imposta variabile</b> <code>Passi</code>.</li>
+      <li>Uguale con <i>Energia attiva</i> (oggi, Somma) → variabile <code>Kcal</code>.</li>
+      <li>Uguale con <i>Frequenza cardiaca a riposo</i>, Data di inizio <i>negli ultimi 1 giorni</i>, <i>Media</i> → variabile <code>Riposo</code>.</li>
+      <li><b>Trova campioni di Salute</b>: <i>Analisi del sonno</i>, Data di inizio <i>negli ultimi 1 giorni</i>, aggiungi filtro Valore <i>non è</i> <i>A letto</i> e Valore <i>non è</i> <i>Sveglio</i>. Poi <b>Ottieni dettagli dei campioni di Salute</b>: <i>Durata</i>. Poi <b>Calcola statistiche</b>: <i>Somma</i> → variabile <code>Sonno</code> (va bene in ore, minuti o secondi: l'app capisce da sola).</li>
+      <li><b>Data corrente</b> → <b>Formatta data</b>: Formato <i>Personalizzato</i> <code>yyyy-MM-dd</code>.</li>
+      <li><b>Testo</b>: <code>LMX;</code>[Data formattata]<code>;</code>[Passi]<code>;;</code>[Riposo]<code>;</code>[Sonno]<code>;</code>[Kcal]</li>
+      <li><b>Ottieni contenuti di URL</b>: <code>https://api.github.com/gists/</code> + incolla l'ID gist. Metodo <i>PATCH</i>. Intestazioni: <code>Authorization</code> = <code>token </code>+ incolla il token. Corpo richiesta <i>JSON</i>: chiave <code>files</code> tipo Dizionario → dentro chiave <code>salute-</code>[Data formattata]<code>.txt</code> tipo Dizionario → dentro chiave <code>content</code> tipo Testo = [Testo].</li>
+      <li>Premi ▶︎ una volta e consenti l'accesso a Salute.</li>
+      <li>Scheda <b>Automazione</b> → <b>+</b> → <i>Ora del giorno</i> 07:20, ogni giorno, <i>Esegui subito</i> → il tuo comando. Rifai lo stesso per le 22:30.</li></ol>
+      <p class="mute">Alle 7:20 arrivano il sonno e il battito a riposo, così la giornata si adatta. Alle 22:30 arrivano passi e calorie completi.</p></details>
+      <p class="small mute" style="margin-top:8px">Oppure incolla a mano una riga così:</p>
       <form id="f-h" class="row"><input type="text" id="h-in" placeholder="LMX;2026-10-25;8432;72;58;7.3;410"><button class="b">Importa</button></form>
       <p class="small mute">Formato: LMX;data;passi;battito medio;battito a riposo;ore di sonno;kcal attive</p>
     </div>
@@ -454,8 +470,12 @@ loadTracks();
 
 // ---------- salute
 function importH(t){const p=String(t).trim().split(";");if(p[0]!=="LMX"||!/^\d{4}-\d\d-\d\d$/.test(p[1]))return false;
- const n=v=>v===undefined||v===""?null:parseFloat(String(v).replace(",","."));
- S.health[p[1]]={st:n(p[2]),hr:n(p[3]),rhr:n(p[4]),sl:n(p[5]),kc:n(p[6])};save();return true}
+ const n=(v,int)=>{let x=String(v??"").replace(/[^\d.,]/g,"");if(!x)return null;if(int&&/^\d{1,3}([.,]\d{3})+$/.test(x))x=x.replace(/[.,]/g,"");x=parseFloat(x.replace(",","."));return isNaN(x)?null:x};
+ let sl=n(p[5]);if(sl!=null){if(sl>1440)sl/=3600;else if(sl>24)sl/=60;sl=Math.round(sl*10)/10}
+ const o=S.health[p[1]]||{},nv={st:n(p[2],1),hr:n(p[3],1),rhr:n(p[4],1),sl,kc:n(p[6],1)};Object.keys(nv).forEach(k=>{if(nv[k]!=null&&!(k==="sl"&&nv[k]===0&&o.sl))o[k]=k==="sl"?nv[k]:Math.round(nv[k])});S.health[p[1]]=o;save();return true}
+function renderHK(){const l=localStorage.getItem("lmx-hlast"),h=S.health[dk()];$("hk-st").innerHTML=h?`<b>Oggi:</b> ${[h.sl!=null?h.sl+" h di sonno":"",h.rhr!=null?"riposo "+h.rhr+" bpm":"",h.st!=null?h.st+" passi":"",h.kc!=null?h.kc+" kcal attive":""].filter(Boolean).join(" · ")}`:(l?"Ultimi dati arrivati il "+new Date(l).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):'<span class="mute">Nessun dato di oggi ancora.</span>')}
+const cpy=(t,m)=>{if(!t)return toast("Prima collega la sincronizzazione in Opzioni");(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(m)).catch(()=>prompt("Copia questo:",t))};
+$("hk-gid").onclick=()=>cpy(gid,"ID gist copiato");$("hk-tok").onclick=()=>cpy(tok,"Token copiato");
 $("f-h").onsubmit=e=>{e.preventDefault();toast(importH($("h-in").value)?"Dati importati":"Formato non valido");$("h-in").value="";render()};
 function importOra(str){const L=String(str).split(";").map(x=>x.split("|")).filter(x=>x.length>=4&&/^\d$/.test(x[0])&&/^\d\d:\d\d$/.test(x[1])&&/^\d\d:\d\d$/.test(x[2])).map(x=>({d:+x[0],a:x[1],b:x[2],c:x[3],r:x[4]||""}));if(!L.length)return false;S.ora=L;save();return true}
 try{const q=new URLSearchParams(location.search).get("ora");if(q&&importOra(q)){history.replaceState(null,"",location.pathname);setTimeout(()=>{toast("Orario caricato");show("orario")},300)}}catch(e){}
@@ -665,7 +685,7 @@ function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("c
  $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
- renderTiles();try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}
+ renderTiles();try{renderHK()}catch(e){}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
  renderDays();const plan=planFor(VD(),w,b),en=vo===0?energy():{e:1,why:["Anteprima: il giorno stesso la giornata si adatta a come hai dormito."]};
  $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=[examNote(),...en.why].filter(Boolean).join(" ");
@@ -697,7 +717,10 @@ function merge(R){const L=S,lt=L.ts||{},rt=R.ts||{},o={ts:{}};
  o.health=Object.assign({},L.health,R.health);return o}
 async function pull(){if(!tok)return;try{syncSt("Sincronizzo...");
  if(!gid){const l=await gh("/gists?per_page=100");const g=l.find(x=>x.files&&x.files[FN]);if(g){gid=g.id;localStorage.setItem("lmx-gist",gid)}}
- if(gid){const g=await gh("/gists/"+gid);const f=g.files[FN];const txt=f.truncated?await fetch(f.raw_url).then(r=>r.text()):f.content;S=merge(JSON.parse(txt));save(true);fillSet();render()}
+ if(gid){const g=await gh("/gists/"+gid);const f=g.files[FN];const txt=f.truncated?await fetch(f.raw_url).then(r=>r.text()):f.content;S=merge(JSON.parse(txt));save(true);
+  const hf=Object.keys(g.files).filter(k=>/^salute/.test(k));let hn=0;hf.forEach(k=>String(g.files[k].content||"").split(/\r?\n/).forEach(l=>{if(importH(l.trim()))hn++}));
+  const old=hf.filter(k=>{const m=k.match(/(\d{4}-\d\d-\d\d)/);return m&&m[1]<dk()});if(old.length)gh("/gists/"+gid,{method:"PATCH",body:JSON.stringify({files:Object.fromEntries(old.map(k=>[k,null]))})}).catch(()=>{});
+  if(hn)localStorage.setItem("lmx-hlast",new Date().toISOString());fillSet();render()}
  pulled=true;await push();}catch(e){syncSt("Sincronizzazione non riuscita: "+e.message)}}
 async function push(){if(!tok||!pulled)return;try{const body=JSON.stringify({files:{[FN]:{content:JSON.stringify(S)}}});
  if(gid)await gh("/gists/"+gid,{method:"PATCH",body});else{const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Dati Lifemaxxing",public:false,files:{[FN]:{content:JSON.stringify(S)}}})});gid=g.id;localStorage.setItem("lmx-gist",gid)}
@@ -706,7 +729,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 25.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 26.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
