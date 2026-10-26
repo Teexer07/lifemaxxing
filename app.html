@@ -169,7 +169,7 @@ ol{padding-left:20px;margin:6px 0}
     <div class="card"><h2>Sincronizzazione</h2>
       <p class="small">Tiene gli stessi dati su iPhone, iPad e PC salvandoli in un gist privato del tuo account GitHub. Si fa una volta per dispositivo:</p>
       <ol class="small"><li>Apri <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Lifemaxxing" target="_blank" rel="noopener">questa pagina di GitHub</a>, in Expiration scegli "No expiration" e premi "Generate token".</li><li>Copia il codice che inizia con ghp_ e incollalo qui. Sugli altri dispositivi incolla lo stesso codice.</li></ol>
-      <form id="f-sync" class="row"><input type="text" id="sy-tok" placeholder="ghp_..." autocomplete="off"><button class="b">Collega</button></form>
+      <form id="f-sync" class="row"><input type="text" id="sy-tok" placeholder="ghp_..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="b">Collega</button><button class="g" type="button" id="sy-now">Sincronizza ora</button></form>
       <p class="small mute" id="sy-st"></p></div>
     <div class="card"><h2>Backup</h2>
       <p class="small">I dati restano solo su questo dispositivo. Copia il backup e incollalo sull'altro dispositivo per spostarli.</p>
@@ -464,9 +464,10 @@ async function push(){if(!tok||!pulled)return;try{const body=JSON.stringify({fil
  if(gid)await gh("/gists/"+gid,{method:"PATCH",body});else{const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Dati Lifemaxxing",public:false,files:{[FN]:{content:JSON.stringify(S)}}})});gid=g.id;localStorage.setItem("lmx-gist",gid)}
  syncSt("Sincronizzato alle "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}catch(e){syncSt("Sincronizzazione non riuscita: "+e.message)}}
 let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=setTimeout(()=>{lastPush=Date.now();push()},Math.max(2500,30000-(Date.now()-lastPush)))}
-$("f-sync").onsubmit=e=>{e.preventDefault();const v=$("sy-tok").value.trim();if(!/^gh[pousr]_|^github_pat_/.test(v))return toast("Il codice deve iniziare con ghp_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
+$("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
+$("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt(tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 12.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));
 if("serviceWorker"in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
