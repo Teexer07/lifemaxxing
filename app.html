@@ -718,7 +718,7 @@ const gh=(u,o={})=>fetch("https://api.github.com"+u,Object.assign({},o,{headers:
 function syncSt(t){$("sy-st").textContent=t}
 function uni(a,b,k){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>m.set(x[k],x));return[...m.values()]}
 function merge(R){const L=S,lt=L.ts||{},rt=R.ts||{},o={ts:{}};
- new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const em=v=>v==null||(typeof v==="object"&&!Object.keys(v).length),a=lt[k]||0,c=rt[k]||0;const useR=!(k in L)||c>a||(c===a&&!(em(R[k])&&!em(L[k])));o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
+ new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const em=v=>v==null||(typeof v==="object"&&!Object.keys(v).length),a=lt[k]||0,c=rt[k]||0;const useR=k==="ora"&&em(R[k])!==em(L[k])?!em(R[k]):!(k in L)||c>a||(c===a&&!(em(R[k])&&!em(L[k])));o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
  o.gone=[...new Set([...(L.gone||[]),...(R.gone||[])])];o.meals=uni(L.meals,R.meals,"at").filter(m=>!o.gone.includes(m.at));
  o.sleep=uni(L.sleep,R.sleep,"a");o.sess=uni(L.sess,R.sess,"a");o.hlog=uni(L.hlog,R.hlog,"at");o.chk=uni(L.chk,R.chk,"id");o.exams=uni(L.exams,R.exams,"id").filter(x=>!o.gone.includes(x.id));o.wash=uni(L.wash,R.wash,"at").filter(x=>!o.gone.includes(x.at));o.exp=uni(L.exp,R.exp,"id").filter(x=>!o.gone.includes(x.id));
  o.study={};new Set([...Object.keys(L.study||{}),...Object.keys(R.study||{})]).forEach(k=>o.study[k]=Math.max((L.study||{})[k]||0,(R.study||{})[k]||0));
@@ -737,7 +737,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 33.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 34.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
