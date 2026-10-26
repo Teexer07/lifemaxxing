@@ -102,9 +102,10 @@ ol{padding-left:20px;margin:6px 0}
     <p class="small mute" id="bd-note"></p></div>
   <div class="card"><h2>Spesa della settimana</h2><div class="grid" id="shop"></div></div>
   <div class="grid">
-    <div class="card"><h2>Registra uno scontrino</h2><p class="small mute">Mandami la foto dello scontrino in chat: lo leggo e ti do una riga da incollare qui sotto. Oppure inserisci il totale a mano.</p>
+    <div class="card"><h2>Registra uno scontrino</h2><p class="small mute">Fotografa lo scontrino: l'app legge totale, data e negozio direttamente sul telefono, anche senza internet. Controlla i valori e premi Registra.</p>
+      <div class="row" style="margin-bottom:10px"><label class="b">Fotografa scontrino<input type="file" id="ex-photo" accept="image/*" capture="environment" hidden></label><span class="small" id="ex-ocr"></span></div>
       <form id="f-exp" class="row"><input type="date" id="ex-d" aria-label="Data"><select id="ex-s" aria-label="Negozio"><option value="I">In's</option><option value="M">Mercatò</option><option value="A">Altro</option></select><input type="number" id="ex-a" step="0.01" min="0" placeholder="Totale €" style="width:110px"><input type="text" id="ex-n" placeholder="Nota (facoltativa)"><button class="b">Registra</button></form>
-      <form id="f-eximp" class="row" style="margin-top:10px"><textarea id="ex-imp" rows="2" placeholder="Incolla qui le righe SPESA;... che ti mando"></textarea><button class="g">Importa</button></form></div>
+      <form id="f-eximp" class="row" style="margin-top:10px"><textarea id="ex-imp" rows="2" placeholder="Oppure incolla righe SPESA;data;negozio;totale"></textarea><button class="g">Importa</button></form></div>
     <div class="card"><h2>Scontrini del mese</h2><ul class="plain small" id="ex-list"></ul></div>
   </div>
 </section>
@@ -327,6 +328,20 @@ $("ex-d").value=dk();
 $("f-exp").onsubmit=e=>{e.preventDefault();const a=parseFloat(String($("ex-a").value).replace(",","."));if(!(a>0))return toast("Inserisci il totale");addExp($("ex-d").value||dk(),$("ex-s").value,a,$("ex-n").value.trim());$("ex-a").value="";$("ex-n").value="";save();toast("Scontrino registrato");render()};
 $("f-eximp").onsubmit=e=>{e.preventDefault();let n=0;$("ex-imp").value.split(/\n/).forEach(l=>{const p=l.trim().split(";");if(p[0]!=="SPESA"||!/^\d{4}-\d\d-\d\d$/.test(p[1]))return;const a=parseFloat(String(p[3]).replace(",","."));if(!(a>0))return;
  if((S.exp||[]).some(x=>x.d===p[1]&&x.s===p[2]&&x.amt===Math.round(a*100)/100&&!(S.gone||[]).includes(x.id)))return;addExp(p[1],p[2]||"A",a,p.slice(4).join(";"));n++});if(n){save();render()}$("ex-imp").value="";toast(n?n+" scontrini importati":"Nessuna riga valida (o già importata)")};
+// lettura scontrino sul dispositivo (Tesseract, file in ocr/, funziona offline dopo il primo uso)
+let ocrW=null;
+async function ocrWorker(){if(ocrW)return ocrW;if(!window.Tesseract)await new Promise((ok,ko)=>{const s=document.createElement("script");s.src="ocr/tesseract.min.js";s.onload=ok;s.onerror=()=>ko(new Error("file OCR non trovati"));document.head.append(s)});
+ ocrW=await Tesseract.createWorker("ita",1,{workerPath:"ocr/worker.min.js",corePath:"ocr/",langPath:"ocr/",gzip:true,workerBlobURL:false});return ocrW}
+function prepImg(file){return new Promise((ok,ko)=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;const x=c.getContext("2d");x.filter="grayscale(1) contrast(1.4)";x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(im.src);ok(c)};im.onerror=ko;im.src=URL.createObjectURL(file)})}
+function parseRec(txt){const L=txt.toUpperCase().split("\n"),num=s=>[...s.matchAll(/(\d{1,4})\s?[.,]\s?(\d{2})(?!\d)/g)].map(m=>+(m[1]+"."+m[2]));let tot=null;
+ const tl=L.filter(l=>/TOTALE|TOT\b|IMPORTO PAGATO|DA PAGARE/.test(l)&&!/SUBTOT|RESTO|CONTANT|IVA|SCONT/.test(l));tl.forEach(l=>{const n=num(l);if(n.length)tot=Math.max(tot||0,n[n.length-1])});
+ if(tot==null){const all=L.filter(l=>!/RESTO|CONTANT|IVA/.test(l)).flatMap(num).filter(v=>v<500);if(all.length)tot=Math.max(...all)}
+ const dm=txt.match(/(\d{2})[\/.\-](\d{2})[\/.\-](\d{2,4})/);let d=null;if(dm){const y=dm[3].length===2?"20"+dm[3]:dm[3];if(+dm[2]>=1&&+dm[2]<=12&&+dm[1]>=1&&+dm[1]<=31)d=`${y}-${dm[2]}-${dm[1]}`}
+ const T=txt.toUpperCase(),s=/IN'?S\b|IN.S MERCATO|PAM/.test(T)?"I":/MERCAT[OÒ]|DIMAR/.test(T)?"M":null;return{tot,d,s}}
+$("ex-photo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const st=$("ex-ocr");try{st.textContent="Preparo la lettura (la prima volta scarica circa 5 MB)...";const w=await ocrWorker();st.textContent="Leggo lo scontrino...";
+ const{data}=await w.recognize(await prepImg(f));const r=parseRec(data.text);if(r.tot)$("ex-a").value=r.tot.toFixed(2);if(r.d)$("ex-d").value=r.d;if(r.s)$("ex-s").value=r.s;
+ st.textContent=r.tot?`Letto: ${eu(r.tot)}${r.d?" del "+r.d.split("-").reverse().join("/"):""}${r.s?" da "+SN[r.s]:""}. Controlla e premi Registra.`:"Non ho trovato il totale: inseriscilo a mano.";$("ex-n").value=$("ex-n").value||"da foto"}
+ catch(err){st.textContent="Lettura non riuscita ("+err.message+"). Inserisci il totale a mano."}};
 document.addEventListener("click",e=>{if(e.target.dataset.exdel){S.gone=S.gone||[];S.gone.push(+e.target.dataset.exdel);save();render()}});
 
 // ---------- sonno
@@ -515,7 +530,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 13.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 14.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));
 if("serviceWorker"in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});

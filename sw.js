@@ -1,5 +1,10 @@
-const CACHE = "lmx-v10";
-const ASSETS = ["./", "index.html", "manifest.json", "icon.svg"];
+const CACHE = "lmx-v11";
+const ASSETS = [
+  "./", "index.html", "manifest.json", "icon.svg",
+  "ocr/tesseract.min.js", "ocr/worker.min.js",
+  "ocr/tesseract-core-simd-lstm.wasm.js", "ocr/tesseract-core-lstm.wasm.js",
+  "ocr/ita.traineddata.gz"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
