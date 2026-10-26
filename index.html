@@ -358,6 +358,8 @@ function importH(t){const p=String(t).trim().split(";");if(p[0]!=="LMX"||!/^\d{4
  const n=v=>v===undefined||v===""?null:parseFloat(String(v).replace(",","."));
  S.health[p[1]]={st:n(p[2]),hr:n(p[3]),rhr:n(p[4]),sl:n(p[5]),kc:n(p[6])};save();return true}
 $("f-h").onsubmit=e=>{e.preventDefault();toast(importH($("h-in").value)?"Dati importati":"Formato non valido");$("h-in").value="";render()};
+function importOra(str){const L=String(str).split(";").map(x=>x.split("|")).filter(x=>x.length>=4&&/^\d$/.test(x[0])&&/^\d\d:\d\d$/.test(x[1])&&/^\d\d:\d\d$/.test(x[2])).map(x=>({d:+x[0],a:x[1],b:x[2],c:x[3],r:x[4]||""}));if(!L.length)return false;S.ora=L;save();return true}
+try{const q=new URLSearchParams(location.search).get("ora");if(q&&importOra(q)){history.replaceState(null,"",location.pathname);setTimeout(()=>{toast("Orario caricato");show("orario")},300)}}catch(e){}
 try{const q=new URLSearchParams(location.search).get("h");if(q&&importH(q)){history.replaceState(null,"",location.pathname);setTimeout(()=>toast("Dati Salute importati"),300)}}catch(e){}
 
 // ---------- impostazioni e backup
