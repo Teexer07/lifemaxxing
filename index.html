@@ -519,7 +519,7 @@ const DN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.getDay()).map(l=>[toMin(l.a),toMin(l.b),l]).sort((x,y)=>x[0]-y[0]);
  const busy=les.map(l=>[l[0],l[1]]),free=(a,z)=>busy.every(x=>z<=x[0]||a>=x[1]);
  const rc=pick("col",d),rp=pick("pra",d),rn=pick("cen",d),BL=rc.t+15,LL=rp.t+35,DL=rn.t+35;
- const P=[[w,"Sveglia, acqua e luce naturale"],[w+15,`Colazione <span class="mute">(prepari, mangi e lavi: ${BL} min)</span>`,w+15+BL]];busy.push([w,w+15+BL]);
+ const P=[[w,"Sveglia, acqua e luce naturale"],[w+15,`Colazione e caffè <span class="mute">(prima un bicchiere d'acqua, il caffè a fine colazione; prepari, mangi e lavi: ${BL} min)</span>`,w+15+BL]];busy.push([w,w+15+BL]);
  const bus=les.length>0;let home=0;if(bus){const dep=les[0][0]<=510?463:les[0][0]-49;busy.push([dep-8,dep+34]);P.push([dep,`Bus per il Poli (arrivo ${fromMin(dep+34)})`,dep+34]);if(les[0][0]>510)home=1}
  const grp=[];les.forEach(l=>{const g=grp[grp.length-1];if(g&&l[0]-g[1]<=15){g[1]=Math.max(g[1],l[1]);g[2].push(l[2])}else grp.push([l[0],l[1],[l[2]]])});
  grp.forEach(g=>P.push([g[0],`<b>Lezioni</b> <span class="mute">${g[2].map(x=>esc(x.c)+(x.r?" ("+esc(x.r)+")":"")).join(", ")}</span>`,g[1]]));
@@ -545,6 +545,9 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   Object.keys(RU).forEach(k=>{if(!al.some(x=>x.n===k))al.push({n:k,u:0})});al=al.map(x=>({n:x.n,m:(x.u+(RU[x.n]||0))*U,r:(RU[x.n]||0)*U})).filter(x=>x.m>0).sort((a,b)=>b.m-a.m);
   st.forEach(p=>{let len=p[2]-p[0];const parts=[];while(len>=U&&al.length){const x=al[0],tk=Math.min(x.m,Math.floor(len/U)*U);const rr=Math.min(x.r,tk);parts.push([x.n,tk,rr]);x.r-=rr;x.m-=tk;len-=tk;if(x.m<=0)al.shift()}
    p[5]=parts;if(parts.length)p[1]=`<b>${en.e<1?"Studio leggero":"Studio"}</b>: ${parts.map(([n,m,rr])=>esc(n)+" "+fdur(m)+(rr?` <span class="mute">(${fdur(rr)} recupero)</span>`:"")).join(" · ")}${p[2]-p[0]>=100||en.e<0.75?` <span class="mute">(${p[4]})</span>`:""}`})}
+ {const ce=lu+LL,nap=P.some(p=>/Pisolino/.test(p[1]));if(ce<=900)P.push([ce,nap?`Caffè e subito il pisolino <span class="mute">(la caffeina entra in circolo in circa 20 min, ti svegli più lucido)</span>`:`Caffè del pomeriggio <span class="mute">(entro le 15: più tardi ti ruba sonno)</span>`]);
+  const aft=P.filter(p=>p[3]==="S"&&p[2]>990).reduce((a,p)=>a+p[2]-Math.max(p[0],960),0),tb=P.find(p=>p[3]==="S"&&p[0]<=990&&p[2]>=1000)||P.find(p=>p[3]==="S"&&p[0]>990&&p[0]<=1020);
+  if(!sp&&aft>=120&&tb)P.push([Math.max(tb[0]+50,960),`Pausa tè nero <span class="mute">(giornata di tanto studio: ultima caffeina, senza zucchero; poi solo acqua)</span>`])}
  if((S.exams||[]).some(x=>dDiff(x.d,dk(d))===1))P.push([1230,"Sera prima della prova: solo ripasso leggero degli schemi, niente cose nuove"]);
  const bed=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b;P.push([1260,sp?"Sera libera: videogiochi o relax, dopo lo sport te lo sei guadagnato":"Sera libera: videogiochi, serie o relax. Niente studio"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
  return P.sort((x,y)=>x[0]-y[0])}
@@ -683,7 +686,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 22.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 23.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
