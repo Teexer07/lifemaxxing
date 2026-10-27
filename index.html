@@ -145,6 +145,8 @@ ol{padding-left:20px;margin:6px 0}
 
 <section id="s-studio">
   <div class="card" id="ci-studio" hidden></div>
+  <div class="card" id="mer-card"><h2>Sei stanco?</h2><p class="small mute" style="margin:0 0 8px">Ti propongo una merenda energizzante, sana e pensata per la concentrazione, con quello che hai in casa.</p>
+    <button type="button" class="b" id="mer-go">Proponimi una merenda</button><div id="mer" style="margin-top:8px"></div></div>
   <div class="card" id="sc-card"><h2 id="sc-h">Oggi ti consiglio</h2><ul class="plain" id="sc-list"></ul><p class="small mute" id="sc-ex" style="margin-bottom:0"></p></div>
   <div class="card" id="nb-card"><h2>Appunti, quiz ed esercizi</h2>
     <p class="small mute" style="margin:0 0 8px">Carica gli appunti di oggi (PDF o foto, anche scritti a mano) e il PDF degli esercizi. Gemini fa le domande dagli appunti, prende gli esercizi dal tuo PDF e ne sceglie 2-3 per fine sessione. Internet serve solo per questo passaggio, e se sei offline lo fa appena torna la rete. Dopo, quiz ed esercizi restano salvati e funzionano offline.</p>
@@ -484,16 +486,16 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-alt]");if(
 const fq=(q,u)=>u==="q.b."?"q.b.":(q===0.5?"½":String(Math.round(q*10)/10).replace(".",","))+" "+u;
 function makeShop(){mkS=1;try{return makeShop0()}finally{mkS=0}}
 function makeShop0(){const tot={};for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()+i);["col","pra","cen"].forEach(t=>mealIng(t,d).forEach(([n,q,u,s,p,fr])=>{if(s==="C")return;const o=tot[n]=tot[n]||{n,q:0,u,s,p:p||0,from:fr||null};o.q+=q}))}
- const items=[],pantry=[];Object.values(tot).sort((a,b)=>a.n.localeCompare(b.n)).forEach(o=>{if(o.u==="q.b.")return pantry.push(o.n);const pk=PK[o.n];let txt;
+ MERS.forEach(([n,q,u,st])=>{const o=tot[n]=tot[n]||{n,q:0,u,s:st,p:0,from:null};o.q+=q});const items=[],pantry=[];Object.values(tot).sort((a,b)=>a.n.localeCompare(b.n)).forEach(o=>{if(o.u==="q.b.")return pantry.push(o.n);const pk=PK[o.n];let txt;
   let eur=0;const pz=PZ[o.n]||0;if(!pk){txt=fq(o.q,o.u);eur=o.q*o.p}else if(!pk[0]){const g=Math.ceil(o.q/50)*50;txt=`${g} g (${pk[1]} al banco)`;eur=g/1000*pz}else if(pk[0]===1){txt=`${Math.ceil(o.q)} × ${pk[1]}`;eur=Math.ceil(o.q)*pz}else{const k=Math.max(1,Math.ceil(o.q/pk[0]-0.05));txt=`${k} × ${pk[1]}`;eur=k*pz}
   items.push({n:o.n,s:o.s,txt,need:fq(o.q,o.u),eur:Math.round(eur*100)/100,from:o.from,ing:1})});
  (S.xshop||[]).forEach(x=>{if(!items.some(y=>y.n===x.n))items.push(Object.assign({need:"aggiunto da te"},x))});
  if(Math.floor(dayN(new Date())/7)%2===0)items.push({n:"Sacchetti per l'immondizia",s:"I",txt:"1 rotolo",need:"ogni 2 settimane",eur:1.29});
- const od=(S.shopList||{}).done||{},done={};items.forEach(x=>{if(od[x.n])done[x.n]=1});S.shopList={from:dk(),items,pantry,done};save()}
+ const od=(S.shopList||{}).done||{},done={};items.forEach(x=>{if(od[x.n])done[x.n]=1});S.shopList={from:dk(),items,pantry,done,mer:1};save()}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.shopt===undefined||!t.value)return;S.shopT=Object.assign({},S.shopT||{},{[t.dataset.shopt]:t.value});save();toast("Spesa alle "+t.value);render()});
 // ---------- notifiche: l'app manda i promemoria di oggi e domani al server (Cloudflare), che spedisce la notifica al minuto giusto
 const WURL=(()=>{try{return localStorage.getItem("lmx-push-url")||"https://lmx-push.lifemaxxing.workers.dev"}catch(e){return""}})();
-const NC={spesa:"Spesa (10 min prima)",bus:"Bus (10 min prima di uscire)",studio:"Inizio dei blocchi di studio",chk:"\"Hai studiato?\" a fine blocco",pasti:"Pasti: cosa cucinare",sonno:"Schermi spenti e vai a dormire",altro:"Impegni tuoi, pisolino, lavatrice"};
+const NC={spesa:"Spesa (10 min prima)",bus:"Bus (10 min prima di uscire)",studio:"Momenti buoni per studiare (facoltativi)",chk:"\"Hai studiato?\" a fine blocco",pasti:"Pasti: cosa cucinare",sonno:"Schermi spenti e vai a dormire",altro:"Impegni tuoi, pisolino, lavatrice"};
 const nUid=()=>{let g="";try{g=localStorage.getItem("lmx-gist")||localStorage.getItem("lmx-nid")||"";if(!g){g=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");localStorage.setItem("lmx-nid",g)}}catch(e){}return g};
 const nTxt=h=>String(h).replace(/<details[\s\S]*?<\/details>/g,"").replace(/<br>[\s\S]*$/,"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
 function notifItems(){const N=S.notif||{},on=k=>!N.c||N.c[k]!==false,out=[],now=Date.now(),w=toMin(S.set.wake),b=toMin(S.set.bed);
@@ -502,7 +504,7 @@ function notifItems(){const N=S.notif||{},on=k=>!N.c||N.c[k]!==false,out=[],now=
   P.forEach(p=>{if(H.includes(pkey(p))||p[6]==="n")return;const t=nTxt(p[1]),add=(k,m,title,body)=>{const T=at(m);if(on(k)&&T>now)out.push({t:T,title,body,tag:k+K+m})};
    if(/^Spesa/.test(t))add("spesa",p[0]-10,"Tra 10 minuti: spesa",t.replace(/ \(.*$/,"")+". La lista è nella sezione Spesa.");
    else if(/^Bus per/.test(t))add("bus",p[0]-10,"Tra 10 minuti esci",t);
-   else if(p[3]==="S"){add("studio",p[0],"Si studia",t);add("chk",p[2],"Hai studiato?","Apri l'app e segna com'è andato il blocco.")}
+   else if(p[3]==="S"){add("studio",p[0],"Momento buono per studiare","Se ti va, in Studio trovi cosa ripassare.");add("chk",p[2],"Hai studiato?","Apri l'app e segna com'è andato il blocco.")}
    else if(/^(Colazione|Pranzo|Cena)/.test(t)){const ty=/^Colazione/.test(t)?"col":/^Pranzo/.test(t)?"pra":"cen";if(!S.meals.some(m=>m.d===K&&m.type===TN[ty]))add("pasti",p[0],TN[ty]+": "+pick(ty,d).n,t.replace(/^[^(]*\(?/,"").replace(/\)$/,"")||"Ricetta nella sezione Pasti.")}
    else if(/^Schermi spenti/.test(t))add("sonno",p[0],"Schermi spenti",t);
    else if(/^A letto/.test(t))add("sonno",p[0],"Vai a dormire",t);
@@ -534,12 +536,33 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-shopfin],[
   else{left.forEach(x=>x.miss=1);toast(left.length?`Spesa finita. ${left.length} prodotti mancano: le ricette della settimana ne fanno a meno.`:"Spesa finita: hai preso tutto")}}
  else{const s=t.dataset.shopundo;delete L.fin[s];L.items.forEach(x=>{if(x.mv===s){x.s=s;delete x.mv}if(x.s===s||x.mv)delete x.miss})}
  S.shopList=Object.assign({},L);save();render()});
+// ---------- merende energizzanti (per la concentrazione), scelte tra quello che hai in casa
+const MER=[{n:"Yogurt greco con noci e un filo di miele",ing:[["Yogurt greco",1,"pz","I"],["Noci sgusciate",15,"g","I"],["Miele",0.5,"cucchiai","I"]],why:"proteine e omega 3: energia costante, senza il calo che danno i dolci"},
+ {n:"Banana con un cucchiaio di burro di arachidi",ing:[["Banana",1,"pz","M"],["Burro di arachidi",1,"cucchiai","I"]],why:"la banana dà energia subito, il burro di arachidi la fa durare"},
+ {n:"2 quadretti di fondente 70% e una manciata di mandorle",ing:[["Cioccolato fondente 70%",2,"pz","I"],["Mandorle",20,"g","I"]],why:"il cacao aiuta attenzione e umore, le mandorle danno magnesio e vitamina E"},
+ {n:"Mela e una manciata di noci",ing:[["Mela",1,"pz","M"],["Noci sgusciate",20,"g","I"]],why:"fibre e omega 3: la concentrazione resta stabile"},
+ {n:"Yogurt greco con frutti di bosco",ing:[["Yogurt greco",1,"pz","I"],["Frutti di bosco surgelati",80,"g","I"]],why:"i mirtilli aiutano la memoria, lo yogurt dà proteine (togli i frutti dal freezer 10 minuti prima)"}];
+const MERS=[["Noci sgusciate",50,"g","I"],["Mandorle",40,"g","I"],["Yogurt greco",2,"pz","I"],["Burro di arachidi",3,"cucchiai","I"],["Cioccolato fondente 70%",4,"pz","I"],["Banana",2,"pz","M"]];
+PK["Noci sgusciate"]=[150,"busta 150 g"];PZ["Noci sgusciate"]=2.49;PK["Mandorle"]=[200,"busta 200 g"];PZ["Mandorle"]=2.99;PK["Burro di arachidi"]=[23,"vasetto 350 g"];PZ["Burro di arachidi"]=2.99;
+Object.assign(NUT,{"Noci sgusciate":[6.5,.15,.07,.65,0,90],"Mandorle":[5.8,.21,.2,.5,0,0]});
+const merMiss=m=>{const L=S.shopList;if(!L)return[];return m.ing.filter(i=>{const x=L.items.find(y=>(y.from||y.n)===i[0]);return x&&!L.done[x.n]}).map(i=>i[0])};
+let merI=-1;
+function renderMer(){const el=$("mer");if(!el||merI<0)return;const R_=MER.map((m,i)=>({m,i,k:merMiss(m).length})).sort((a,b)=>a.k-b.k||((a.i-merI+MER.length)%MER.length)-((b.i-merI+MER.length)%MER.length)),o=R_[0],m=o.m,miss=merMiss(m),N=nutIng(m.ing.map(subI)),h=new Date().getHours();
+ el.innerHTML=`<p style="margin:0 0 4px"><b>${esc(m.n)}</b> <span class="small mute">~${Math.round(N[0])} kcal · ${Math.round(N[1])} g proteine</span></p><p class="small" style="margin:0 0 6px">Perché: ${esc(m.why)}.${miss.length?` <span style="color:var(--bad)">Ti manca: ${miss.map(esc).join(", ")} (è nella lista della spesa).</span>`:""}</p>
+ <p class="small mute" style="margin:0 0 8px">${h<17?"Da bere: un tè nero, l'ultima caffeina della giornata. Al massimo 1 cucchiaino di zucchero e una fetta di limone.":"Da bere: acqua. Dopo le 17 niente caffeina, se no dormi peggio."} Prima di mangiare fai 5 minuti in piedi e un bicchiere d'acqua: spesso la stanchezza è anche un po' di disidratazione.</p>
+ <div class="row"><button type="button" class="g" id="mer-next">Un'altra</button><button type="button" class="b" id="mer-eat" data-k="${Math.round(N[0])}" data-p="${Math.round(N[1])}">L'ho mangiata</button></div>`}
+document.addEventListener("click",e=>{const id=e.target.id;
+ if(id==="mer-go"){merI=Math.floor(Math.random()*MER.length);renderMer()}
+ if(id==="mer-next"){merI=(merI+1)%MER.length;renderMer()}
+ if(id==="mer-eat"){const R_=MER.map((m,i)=>({m,i,k:merMiss(m).length})).sort((a,b)=>a.k-b.k||((a.i-merI+MER.length)%MER.length)-((b.i-merI+MER.length)%MER.length));S.meals.push({d:dk(),type:"Spuntino",txt:R_[0].m.n,at:Date.now(),k:+e.target.dataset.k,pr:+e.target.dataset.p,sc:8,tags:"v"});save();toast("Merenda registrata");merI=-1;$("mer").innerHTML="";render()}});
+function ensureMer(){const L=S.shopList;if(!L||L.mer)return;const F=L.fin||{};MERS.forEach(([n,q,u,st])=>{if(L.items.some(x=>(x.from||x.n)===n))return;const s_=F[st]&&!F[st==="I"?"M":"I"]?(st==="I"?"M":"I"):st,pk=PK[n],pz=PZ[n]||0;let txt=fq(q,u),eur=0;if(pk&&pk[0]){const k=Math.max(1,Math.ceil(q/pk[0]-0.05));txt=`${k} × ${pk[1]}`;eur=k*pz}
+  L.items.push({n,s:s_,txt,need:fq(q,u)+" (merende)",eur:Math.round(eur*100)/100,ing:1})});L.mer=1;S.shopList=Object.assign({},L);save()}
 function subSel(x){const o=x.from||x.n,A=(ALT[o]||[]).filter(a=>a[0]!==x.n);return `<select data-sub="${esc(o)}" aria-label="Cambia ${esc(x.n)}" style="width:auto;max-width:100px;font-size:13px;padding:4px 6px;min-height:0;border:1px solid currentColor;border-radius:8px"><option value="">Cambia ▾</option>${A.map(a=>`<option value="a:${esc(a[0])}">${esc(a[0])}</option>`).join("")}${x.from?`<option value="r">Torna a ${esc(o)}</option>`:""}<option value="b">Non lo voglio: cambia le ricette</option></select>`}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.sub===undefined||!t.value)return;const o=t.dataset.sub,v=t.value;S.subI=S.subI||{};S.banI=S.banI||[];
  if(v==="r")delete S.subI[o];else if(v==="b"){delete S.subI[o];if(!S.banI.includes(o))S.banI.push(o);toast("Non ti propongo più ricette con "+o)}else{S.subI[o]=v.slice(2);toast(o+" → "+v.slice(2)+": ricette aggiornate")}
  S.subI=Object.assign({},S.subI);S.banI=[...S.banI];makeShop();render()});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-unban]");if(t){S.banI=(S.banI||[]).filter(n=>n!==t.dataset.unban);makeShop();render()}});
-function shopping(){if(!S.shopList||!S.shopList.items[0]||S.shopList.items[0].eur===undefined)makeShop();const L=S.shopList,tot=L.items.length,got=L.items.filter(x=>L.done[x.n]).length;
+function shopping(){if(!S.shopList||!S.shopList.items[0]||S.shopList.items[0].eur===undefined)makeShop();ensureMer();const L=S.shopList,tot=L.items.length,got=L.items.filter(x=>L.done[x.n]).length;
  const f=new Date(L.from),to=new Date(f);to.setDate(to.getDate()+6);const df=d=>d.toLocaleDateString("it-IT",{day:"numeric",month:"short"});
  return `<p class="small" style="grid-column:1/-1;margin:0">Dal ${df(f)} al ${df(to)} · <b>${got}/${tot}</b> presi · stima <b>${eu(L.items.reduce((a,x)=>a+x.eur,0))}</b> <button class="g small" id="shop-new" style="padding:2px 8px;margin-left:6px">Rifai lista da oggi</button></p>`+["I","M"].map(s=>{const it=L.items.filter(x=>x.s===s);const fin=(L.fin||{})[s];return `<div><h3><span class="pill ${s}">${s==="I"?"In's Mercato":"Mercatò Local"}</span> <span class="small mute">${it.filter(x=>L.done[x.n]).length}/${it.length} · ~${eu(it.reduce((a,x)=>a+x.eur,0))}</span> ${fin?`<span class="small" style="color:var(--good)">finito ✓</span> <button type="button" class="g small" data-shopundo="${s}" style="padding:2px 8px;min-height:0">Annulla</button>`:`<button type="button" class="b small" data-shopfin="${s}" style="padding:2px 10px;min-height:0">Finito?</button>`}</h3><ul class="plain small" style="margin-top:8px">${it.map(x=>`<li class="row" style="align-items:flex-start;gap:6px;flex-wrap:nowrap"><label class="row" style="flex:1;min-width:0;align-items:flex-start;gap:8px;${L.done[x.n]?"opacity:.5;text-decoration:line-through":""}"><input type="checkbox" data-shop="${esc(x.n)}" ${L.done[x.n]?"checked":""} style="margin-top:3px"><span style="flex:1;min-width:0"><b>${esc(x.n)}</b>: ${esc(x.txt)}${x.eur?` <span class="num mute">~${eu(x.eur)}</span>`:""}<br><span class="mute">ti servono ${esc(x.need)}${x.from?" · al posto di "+esc(x.from):""}${x.mv?` · <b>non trovato da ${SN[x.mv]}</b>`:""}${x.miss&&!L.done[x.n]?` · <b>non trovato: le ricette ne fanno a meno</b>`:""}</span></span></label>${x.ing||(x.need!=="aggiunto da te"&&!/^Sacchetti/.test(x.n))?subSel(x):""}</li>`).join("")}</ul></div>`}).join("")+((S.banI||[]).length?`<div><h3>Prodotti che non vuoi</h3><p class="small mute">Le ricette che li usano non te le propongo: ${S.banI.map(n=>`<button type="button" class="g small" data-unban="${esc(n)}" style="padding:2px 8px;min-height:0">${esc(n)} ×</button>`).join(" ")}</p></div>`:"")+(L.pantry.length?`<div><h3>Da avere già in casa</h3><p class="small mute">${L.pantry.map(esc).join(", ")}. Controlla di non averli finiti.</p></div>`:"")}
 document.addEventListener("change",e=>{if(e.target.dataset.shop!==undefined){S.shopList.done[e.target.dataset.shop]=e.target.checked;if(e.target.checked)S.xshop=(S.xshop||[]).filter(x=>x.n!==e.target.dataset.shop);save();render()}});
@@ -846,10 +869,10 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   let al=sb.map(x=>({n:x.n,u:Math.floor(n0*x.w/W),r:(n0*x.w/W)%1}));let lf=n0-al.reduce((a,x)=>a+x.u,0);al.sort((a,b)=>b.r-a.r).forEach(x=>{if(lf>0){x.u++;lf--}});
   Object.keys(RU).forEach(k=>{if(!al.some(x=>x.n===k))al.push({n:k,u:0})});al=al.map(x=>({n:x.n,m:(x.u+(RU[x.n]||0))*U,r:(RU[x.n]||0)*U})).filter(x=>x.m>0).sort((a,b)=>b.m-a.m);
   st.forEach(p=>{let len=p[2]-p[0];const parts=[];while(len>=U&&al.length){const x=al[0],tk=Math.min(x.m,Math.floor(len/U)*U);const rr=Math.min(x.r,tk);parts.push([x.n,tk,rr]);x.r-=rr;x.m-=tk;len-=tk;if(x.m<=0)al.shift()}
-   p[5]=parts;if(parts.length)p[1]=`<b>${en.e<1?"Studio leggero":"Studio"}</b>: ${parts.map(([n,m,rr])=>esc(n)+" "+fdur(m)+(rr?` <span class="mute">(${fdur(rr)} recupero)</span>`:"")).join(" · ")}${p[2]-p[0]>=100||en.e<0.75?` <span class="mute">(${p[4]})</span>`:""}`})}
+   p[5]=parts;p[1]=`Tempo libero <span class="mute">(momento buono per studiare, se ti va: cosa fare è in Studio)</span>`})}
  {const ce=lu+LL,nap=P.some(p=>/Power nap 20 minuti<\/b>/.test(p[1]));if(ce<=900)P.push([ce,nap?`Caffè e subito il pisolino <span class="mute">(la caffeina entra in circolo in circa 20 min, ti svegli più lucido)</span>`:`Caffè del pomeriggio <span class="mute">(entro le 15: più tardi ti ruba sonno)</span>`]);
   const aft=P.filter(p=>p[3]==="S"&&p[2]>990).reduce((a,p)=>a+p[2]-Math.max(p[0],960),0),tb=P.find(p=>p[3]==="S"&&p[0]<=990&&p[2]>=1000)||P.find(p=>p[3]==="S"&&p[0]>990&&p[0]<=1020);
-  if(!sp&&aft>=120&&tb)P.push([Math.max(tb[0]+50,960),`Pausa tè nero <span class="mute">(giornata di tanto studio: ultima caffeina. Al massimo 1 cucchiaino di zucchero, non 3, e una fetta di limone; poi solo acqua)</span>`])}
+  if(0)P.push([Math.max(tb[0]+50,960),`Pausa tè nero <span class="mute">(giornata di tanto studio: ultima caffeina. Al massimo 1 cucchiaino di zucchero, non 3, e una fetta di limone; poi solo acqua)</span>`])}
  if((S.exams||[]).some(x=>dDiff(x.d,dk(d))===1))P.push([1230,"Sera prima della prova: solo ripasso leggero degli schemi, niente cose nuove"]);
  const bed=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b;P.push([P.ev_||1260,sp&&!P.ev_?"Sera libera: videogiochi o relax, dopo lo sport te lo sei guadagnato":P.ev_?"Poi sera libera: videogiochi, serie o relax":"Sera libera: videogiochi, serie o relax. Niente studio"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
  (S.chk||[]).filter(c=>c.d===K_).forEach(c=>{const p=P.find(q=>q[3]==="S"&&K_+"|"+q[0]===c.id);if(!p)return;p[6]=c.k;p[1]=c.k==="n"?`<s class="mute">${p[1].replace(/<[^>]+>/g,"")}</s> <span class="small" style="color:var(--bad)">saltato: ore spostate nei prossimi giorni</span>`:p[1]+` <span class="small" style="color:var(--good)">✓ fatto</span>`});
@@ -937,7 +960,8 @@ function renderAdvice(){const a=studyAdvice(new Date()),L=Object.entries(a.tot).
  $("sc-h").textContent=sum?`Oggi ti consiglio di studiare ${fdur(sum)}`:"Oggi niente studio in programma";
  $("sc-list").innerHTML=L.map(([n,m])=>{const dn=Math.round(done[n]||0);return `<li><div class="row" style="justify-content:space-between"><b>${esc(n)}</b><span class="num small">${fdur(dn)} / ${fdur(m)}</span></div><div class="bar"><i style="width:${Math.min(100,dn/m*100)}%"></i></div></li>`}).join("")+(a.rev?`<li class="small">+ <b>Ripasso a caldo</b> dopo lezione: ${fdur(a.rev)}</li>`:"")||'<li class="small mute">Oggi la giornata è piena (lezioni, sport o riposo).</li>';
  const tg=(S.set.study||5)*60;if(sum<tg-30&&!$("sc-why"))$("sc-h").insertAdjacentHTML("afterend",'<p class="small" id="sc-why" style="margin:0 0 8px"></p>');const wy=$("sc-why");if(wy){if(sum<tg-30)wy.innerHTML=`<b>Meno del tuo obiettivo di ${fdur(tg)}</b> perché ${a.why.join("; ")}. Il resto si recupera nei giorni più liberi.`;else wy.remove()}
- $("sc-ex").textContent=[examNote(),"Scegli la materia nel menu qui sotto prima di avviare il timer: così il conteggio torna e le materie rimaste indietro recuperano."].filter(Boolean).join(" ")}
+ const fm=planFor(new Date(),toMin(S.set.wake),toMin(S.set.bed)).filter(p=>p[3]==="S"&&p[6]!=="n").map(p=>fromMin(p[0])+"–"+fromMin(p[2]));
+ $("sc-ex").textContent=[fm.length?"Momenti liberi adatti: "+fm.join(", ")+".":"",examNote(),"Scegli la materia nel menu qui sotto prima di avviare il timer: così il conteggio torna e le materie rimaste indietro recuperano."].filter(Boolean).join(" ")}
 
 // ---------- prove
 function renderProve(){const k=dk(),L=(S.exams||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
@@ -1026,7 +1050,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 46.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 47.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
