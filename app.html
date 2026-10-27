@@ -243,6 +243,11 @@ ol{padding-left:20px;margin:6px 0}
 
 <section id="s-dati">
   <div class="grid">
+    <div class="card" id="nt-card"><h2>Notifiche</h2>
+      <p class="small mute" style="margin:0 0 8px">Promemoria sul telefono anche con l'app chiusa (iPhone: apri l'app dall'icona Home). Arrivano al minuto giusto e si aggiornano quando cambia la giornata.</p>
+      <div class="row"><button type="button" class="b" id="nt-on">Attiva notifiche su questo dispositivo</button></div>
+      <div id="nt-cats" class="small" style="display:grid;gap:4px;margin-top:8px"></div>
+      <p class="small" id="nt-st" style="margin-bottom:0"></p></div>
     <div class="card"><h2>Obiettivi</h2>
       <form id="f-set" style="display:grid;gap:8px">
         <label class="row small">Sveglia <input type="time" id="g-wake"></label>
@@ -469,6 +474,43 @@ function makeShop(){const tot={};for(let i=0;i<7;i++){const d=new Date();d.setDa
  if(Math.floor(dayN(new Date())/7)%2===0)items.push({n:"Sacchetti per l'immondizia",s:"I",txt:"1 rotolo",need:"ogni 2 settimane",eur:1.29});
  const od=(S.shopList||{}).done||{},done={};items.forEach(x=>{if(od[x.n])done[x.n]=1});S.shopList={from:dk(),items,pantry,done};save()}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.shopt===undefined||!t.value)return;S.shopT=Object.assign({},S.shopT||{},{[t.dataset.shopt]:t.value});save();toast("Spesa alle "+t.value);render()});
+// ---------- notifiche: l'app manda i promemoria di oggi e domani al server (Cloudflare), che spedisce la notifica al minuto giusto
+const WURL=(()=>{try{return localStorage.getItem("lmx-push-url")||"https://lmx-push.SOTTODOMINIO.workers.dev"}catch(e){return""}})();
+const NC={spesa:"Spesa (10 min prima)",bus:"Bus (10 min prima di uscire)",studio:"Inizio dei blocchi di studio",chk:"\"Hai studiato?\" a fine blocco",pasti:"Pasti: cosa cucinare",sonno:"Schermi spenti e vai a dormire",altro:"Impegni tuoi, pisolino, lavatrice"};
+const nUid=()=>{let g="";try{g=localStorage.getItem("lmx-gist")||localStorage.getItem("lmx-nid")||"";if(!g){g=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");localStorage.setItem("lmx-nid",g)}}catch(e){}return g};
+const nTxt=h=>String(h).replace(/<details[\s\S]*?<\/details>/g,"").replace(/<br>[\s\S]*$/,"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
+function notifItems(){const N=S.notif||{},on=k=>!N.c||N.c[k]!==false,out=[],now=Date.now(),w=toMin(S.set.wake),b=toMin(S.set.bed);
+ for(const i of [0,1]){const d=new Date();d.setDate(d.getDate()+i);const K=dk(d),at=m=>{const x=new Date(d);x.setHours(0,0,0,0);return x.getTime()+m*60000};let P=[];try{P=planFor(d,w,b)}catch(e){continue}
+  const H=(S.hide||[]).filter(h=>h.d===K&&!(S.gone||[]).includes(h.id)).map(h=>h.k);
+  P.forEach(p=>{if(H.includes(pkey(p))||p[6]==="n")return;const t=nTxt(p[1]),add=(k,m,title,body)=>{const T=at(m);if(on(k)&&T>now)out.push({t:T,title,body,tag:k+K+m})};
+   if(/^Spesa/.test(t))add("spesa",p[0]-10,"Tra 10 minuti: spesa",t.replace(/ \(.*$/,"")+". La lista è nella sezione Spesa.");
+   else if(/^Bus per/.test(t))add("bus",p[0]-10,"Tra 10 minuti esci",t);
+   else if(p[3]==="S"){add("studio",p[0],"Si studia",t);add("chk",p[2],"Hai studiato?","Apri l'app e segna com'è andato il blocco.")}
+   else if(/^(Colazione|Pranzo|Cena)/.test(t)){const ty=/^Colazione/.test(t)?"col":/^Pranzo/.test(t)?"pra":"cen";if(!S.meals.some(m=>m.d===K&&m.type===TN[ty]))add("pasti",p[0],TN[ty]+": "+pick(ty,d).n,t.replace(/^[^(]*\(?/,"").replace(/\)$/,"")||"Ricetta nella sezione Pasti.")}
+   else if(/^Schermi spenti/.test(t))add("sonno",p[0],"Schermi spenti",t);
+   else if(/^A letto/.test(t))add("sonno",p[0],"Vai a dormire",t);
+   else if(/Power nap 20 minuti/.test(t))add("sonno",p[0],"Power nap",t.replace(/Oggi no.*$/,""));
+   else if(p[3]==="C"||/^(Lavatrice|Stendi|Stira|Esci di casa)/.test(t))add("altro",p[0],t.split(/[:(]/)[0].trim(),t)})}
+ return out.sort((a,b)=>a.t-b.t).slice(0,80)}
+let nLast="",nTm=0;
+function sendPlan(force){if(!(S.notif||{}).on||!WURL||!navigator.onLine)return;clearTimeout(nTm);nTm=setTimeout(async()=>{const items=notifItems(),j=JSON.stringify(items);if(!force&&j===nLast)return;
+ try{const r=await fetch(WURL+"/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({u:nUid(),items})});if(r.ok)nLast=j}catch(e){}},force?0:2500)}
+async function nCfg(){try{const c=await caches.open("lmx-cfg");await c.put("cfg",new Response(JSON.stringify({w:WURL,u:nUid()}),{headers:{"Content-Type":"application/json"}}))}catch(e){}}
+function renderNotif(){const N=S.notif||{},st=$("nt-st");if(!st)return;
+ $("nt-cats").innerHTML=Object.entries(NC).map(([k,l])=>`<label class="row"><input type="checkbox" data-ntc="${k}" ${!N.c||N.c[k]!==false?"checked":""}> ${l}</label>`).join("");
+ const perm=typeof Notification!=="undefined"?Notification.permission:"no";let me=false;try{me=localStorage.getItem("lmx-nt")==="1"}catch(e){}
+ $("nt-on").textContent=me&&perm==="granted"?"Notifiche attive qui ✓ (prova di nuovo)":"Attiva notifiche su questo dispositivo";
+ st.textContent=perm==="no"||!("PushManager"in window)?"Questo browser non supporta le notifiche. Su iPhone apri Lifemaxxing dall'icona nella schermata Home (iOS 16.4 o più recente).":perm==="denied"?"Notifiche bloccate: Impostazioni → Notifiche → Lifemaxxing → Consenti notifiche.":N.on?`Prossimo promemoria: ${(()=>{const x=notifItems()[0];return x?new Date(x.t).toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})+" · "+x.title:"nessuno"})()}`:"";if(N.on)sendPlan()}
+const b64k=s=>{const p="=".repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+document.addEventListener("click",async e=>{if(e.target.id!=="nt-on")return;const st=$("nt-st");
+ try{if(!("serviceWorker"in navigator)||!("PushManager"in window))throw new Error("Questo browser non supporta le notifiche. Su iPhone apri Lifemaxxing dall'icona nella schermata Home.");
+  st.textContent="Attivo...";const p=await Notification.requestPermission();if(p!=="granted")throw new Error("Permesso negato: Impostazioni → Notifiche → Lifemaxxing → Consenti.");
+  const reg=await navigator.serviceWorker.ready,{key}=await (await fetch(WURL+"/key")).json();let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64k(key)});await nCfg();
+  const r=await fetch(WURL+"/sub",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({u:nUid(),sub:sub.toJSON(),test:1})});if(!r.ok)throw new Error("Il server non risponde ("+r.status+").");
+  try{localStorage.setItem("lmx-nt","1")}catch(x){}S.notif=Object.assign({},S.notif,{on:1});save();sendPlan(true);toast("Fatto: tra qualche secondo arriva una notifica di prova");renderNotif()}catch(x){st.textContent=x.message||String(x)}});
+document.addEventListener("change",e=>{const k=e.target.dataset.ntc;if(!k)return;const N=Object.assign({},S.notif||{});N.c=Object.assign({},N.c||{},{[k]:e.target.checked});S.notif=N;save();renderNotif()});
+nCfg();
 function subSel(x){const o=x.from||x.n,A=(ALT[o]||[]).filter(a=>a[0]!==x.n);return `<select data-sub="${esc(o)}" aria-label="Cambia ${esc(x.n)}" style="width:auto;max-width:100px;font-size:13px;padding:4px 6px;min-height:0;border:1px solid currentColor;border-radius:8px"><option value="">Cambia ▾</option>${A.map(a=>`<option value="a:${esc(a[0])}">${esc(a[0])}</option>`).join("")}${x.from?`<option value="r">Torna a ${esc(o)}</option>`:""}<option value="b">Non lo voglio: cambia le ricette</option></select>`}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.sub===undefined||!t.value)return;const o=t.dataset.sub,v=t.value;S.subI=S.subI||{};S.banI=S.banI||[];
  if(v==="r")delete S.subI[o];else if(v==="b"){delete S.subI[o];if(!S.banI.includes(o))S.banI.push(o);toast("Non ti propongo più ricette con "+o)}else{S.subI[o]=v.slice(2);toast(o+" → "+v.slice(2)+": ricette aggiornate")}
@@ -476,7 +518,7 @@ document.addEventListener("change",e=>{const t=e.target;if(t.dataset.sub===undef
 document.addEventListener("click",e=>{const t=e.target.closest("[data-unban]");if(t){S.banI=(S.banI||[]).filter(n=>n!==t.dataset.unban);makeShop();render()}});
 function shopping(){if(!S.shopList||!S.shopList.items[0]||S.shopList.items[0].eur===undefined)makeShop();const L=S.shopList,tot=L.items.length,got=L.items.filter(x=>L.done[x.n]).length;
  const f=new Date(L.from),to=new Date(f);to.setDate(to.getDate()+6);const df=d=>d.toLocaleDateString("it-IT",{day:"numeric",month:"short"});
- return `<p class="small" style="grid-column:1/-1;margin:0">Dal ${df(f)} al ${df(to)} · <b>${got}/${tot}</b> presi · stima <b>${eu(L.items.reduce((a,x)=>a+x.eur,0))}</b> <button class="g small" id="shop-new" style="padding:2px 8px;margin-left:6px">Rifai lista da oggi</button></p>`+["I","M"].map(s=>{const it=L.items.filter(x=>x.s===s);return `<div><h3><span class="pill ${s}">${s==="I"?"In's Mercato":"Mercatò Local"}</span> <span class="small mute">${it.filter(x=>L.done[x.n]).length}/${it.length} · ~${eu(it.reduce((a,x)=>a+x.eur,0))}</span></h3><ul class="plain small" style="margin-top:8px">${it.map(x=>`<li class="row" style="align-items:flex-start;gap:6px;flex-wrap:nowrap"><label class="row" style="flex:1;min-width:0;align-items:flex-start;gap:8px;${L.done[x.n]?"opacity:.5;text-decoration:line-through":""}"><input type="checkbox" data-shop="${esc(x.n)}" ${L.done[x.n]?"checked":""} style="margin-top:3px"><span style="flex:1;min-width:0"><b>${esc(x.n)}</b>: ${esc(x.txt)}${x.eur?` <span class="num mute">~${eu(x.eur)}</span>`:""}<br><span class="mute">ti servono ${esc(x.need)}${x.from?" · al posto di "+esc(x.from):""}</span></span></label>${x.ing?subSel(x):""}</li>`).join("")}</ul></div>`}).join("")+((S.banI||[]).length?`<div><h3>Prodotti che non vuoi</h3><p class="small mute">Le ricette che li usano non te le propongo: ${S.banI.map(n=>`<button type="button" class="g small" data-unban="${esc(n)}" style="padding:2px 8px;min-height:0">${esc(n)} ×</button>`).join(" ")}</p></div>`:"")+(L.pantry.length?`<div><h3>Da avere già in casa</h3><p class="small mute">${L.pantry.map(esc).join(", ")}. Controlla di non averli finiti.</p></div>`:"")}
+ return `<p class="small" style="grid-column:1/-1;margin:0">Dal ${df(f)} al ${df(to)} · <b>${got}/${tot}</b> presi · stima <b>${eu(L.items.reduce((a,x)=>a+x.eur,0))}</b> <button class="g small" id="shop-new" style="padding:2px 8px;margin-left:6px">Rifai lista da oggi</button></p>`+["I","M"].map(s=>{const it=L.items.filter(x=>x.s===s);return `<div><h3><span class="pill ${s}">${s==="I"?"In's Mercato":"Mercatò Local"}</span> <span class="small mute">${it.filter(x=>L.done[x.n]).length}/${it.length} · ~${eu(it.reduce((a,x)=>a+x.eur,0))}</span></h3><ul class="plain small" style="margin-top:8px">${it.map(x=>`<li class="row" style="align-items:flex-start;gap:6px;flex-wrap:nowrap"><label class="row" style="flex:1;min-width:0;align-items:flex-start;gap:8px;${L.done[x.n]?"opacity:.5;text-decoration:line-through":""}"><input type="checkbox" data-shop="${esc(x.n)}" ${L.done[x.n]?"checked":""} style="margin-top:3px"><span style="flex:1;min-width:0"><b>${esc(x.n)}</b>: ${esc(x.txt)}${x.eur?` <span class="num mute">~${eu(x.eur)}</span>`:""}<br><span class="mute">ti servono ${esc(x.need)}${x.from?" · al posto di "+esc(x.from):""}</span></span></label>${x.ing||(x.need!=="aggiunto da te"&&!/^Sacchetti/.test(x.n))?subSel(x):""}</li>`).join("")}</ul></div>`}).join("")+((S.banI||[]).length?`<div><h3>Prodotti che non vuoi</h3><p class="small mute">Le ricette che li usano non te le propongo: ${S.banI.map(n=>`<button type="button" class="g small" data-unban="${esc(n)}" style="padding:2px 8px;min-height:0">${esc(n)} ×</button>`).join(" ")}</p></div>`:"")+(L.pantry.length?`<div><h3>Da avere già in casa</h3><p class="small mute">${L.pantry.map(esc).join(", ")}. Controlla di non averli finiti.</p></div>`:"")}
 document.addEventListener("change",e=>{if(e.target.dataset.shop!==undefined){S.shopList.done[e.target.dataset.shop]=e.target.checked;if(e.target.checked)S.xshop=(S.xshop||[]).filter(x=>x.n!==e.target.dataset.shop);save();render()}});
 document.addEventListener("click",e=>{if(e.target.id==="shop-new"){makeShop();toast("Nuova lista per 7 giorni");render()}});
 
@@ -907,7 +949,7 @@ function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("c
  $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
- renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}
+ renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}try{renderNotif()}catch(e){console.error(e)}
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
  renderDays();const plan=planFor(VD(),w,b),en=vo===0?energy():{e:1,why:["Anteprima: il giorno stesso la giornata si adatta a come hai dormito."]};
  $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=[examNote(),...en.why].filter(Boolean).join(" ");
@@ -953,7 +995,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 44.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 45.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
