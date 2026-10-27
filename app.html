@@ -152,6 +152,7 @@ ol{padding-left:20px;margin:6px 0}
       <p class="small" id="st-state">Ferma. Avvia il timer o fai partire un video con la modalità studio attiva.</p>
       <div class="row"><select id="st-subj"></select><button class="b" id="st-toggle">Avvia timer</button></div>
       <label class="row small" style="margin-top:10px"><input type="checkbox" id="st-yt" checked> Conta come studio il tempo in cui suonano musica, video o rumore</label>
+      <details style="margin-top:8px"><summary class="small">Sessioni di oggi (puoi correggere la materia)</summary><ul class="plain small" id="st-sess" style="display:grid;gap:4px;margin-top:6px"></ul></details>
     </div>
     <div class="card"><h2>Ultimi 7 giorni</h2><div class="chart" id="ch-study"></div><div class="lbls" id="lb-study"></div><p class="small mute" id="study-avg"></p></div>
   </div>
@@ -260,7 +261,7 @@ ol{padding-left:20px;margin:6px 0}
         <label class="row small">Correzione budget di questo mese (€, es. -30) <input type="number" id="g-badj" step="1" style="width:90px"></label>
         <label class="row small">Materie da non lasciare indietro <input type="text" id="g-keep" placeholder="Chimica"></label>
         <label class="row small">Materie con appunti su Notion <input type="text" id="g-notion" placeholder="Chimica"></label>
-        <label class="row small">Ore di studio al giorno <input type="number" id="g-study" min="0" max="14" step="0.5" style="width:90px"></label>
+        <label class="row small">Massimo di ore di studio al giorno (l'obiettivo è il 90% del tempo libero) <input type="number" id="g-study" min="0" max="14" step="0.5" style="width:90px"></label>
         <label class="row small">Materie (separate da virgola) <input type="text" id="g-subj"></label>
         <label class="row small">Chiave Gemini (per appunti e quiz; resta su questo dispositivo) <input type="password" id="g-gem" autocomplete="off" placeholder="AIza..."></label>
         <label class="row small">Modello Gemini <input type="text" id="g-gemm" placeholder="gemini-flash-latest"></label>
@@ -434,7 +435,8 @@ const O3T=250,ALAT=1600,KT=2500,PRT=90; // obiettivi giornalieri: EPA+DHA 250 mg
 function nutIng(a){const n=[0,0,0,0,0,0];a.forEach(i=>{const v=NUT[i[0]];if(!v)return;const q=i[2]==="q.b."?1:i[1];v.forEach((x,j)=>n[j]+=x*q)});return n}
 const O3F=[[/salmone|sgombro|sardin|alici|acciugh|aringh/,1500,0],[/sushi|sashimi|nigiri|uramaki|pok[eè]/,500,0],[/tonno/,200,0],[/trota/,1000,0],[/pesce|merluzz|orata|branzin|gamber|calamar|bastoncin/,200,0],[/uov|frittata|omelette/,40,20],[/noci/,0,2500],[/lino/,0,2300],[/chia/,0,1800],[/mandorl|nocciol|pistacch/,0,0]];
 function nutAlt(m){const t=String(m.txt||"").toLowerCase(),k=m.k||0,p=m.pr||0,r=Math.max(0,k-4*p);let e=0,a=0;O3F.forEach(x=>{if(x[0].test(t)){e+=x[1];a+=x[2]}});return[k,p,r*.5/4,r*.5/9,e,a]}
-function nutMeal(m){if(m.k!==undefined||!m.plan)return nutAlt(m);const t=Object.keys(TN).find(x=>TN[x]===m.type);return t?nutIng(mealIng(t,new Date(m.d+"T12:00"))):[0,0,0,0,0,0]}
+function nutMeal(m){if(m.k!==undefined||!m.plan)return nutAlt(m);const t=Object.keys(TN).find(x=>TN[x]===m.type);return t?nutIng(mealIng(t,new Date(m.d+"T12:00")).filter(i=>!(m.skip||[]).includes(i[0]))):[0,0,0,0,0,0]}
+let excT="";
 function dayNut(d){const k=dk(d),M=S.meals.filter(m=>m.d===k),eat=[0,0,0,0,0,0],plan=[0,0,0,0,0,0];M.forEach(m=>nutMeal(m).forEach((x,j)=>eat[j]+=x));["col","pra","cen"].forEach(t=>{if(!M.some(m=>m.type===TN[t]))nutIng(mealIng(t,d)).forEach((x,j)=>plan[j]+=x)});return{eat,plan,n:M.length}}
 function renderNut(){const el=$("nut");if(!el)return;const N=dayNut(new Date()),e=N.eat,tot=e.map((x,j)=>x+N.plan[j]),pc=x=>Math.round(x/O3T*100);
  const w=last7().map(d=>{const k=dk(d);let o=0;S.meals.filter(m=>m.d===k).forEach(m=>o+=nutMeal(m)[4]);return o}),wa=Math.round(w.reduce((a,b)=>a+b,0)/7/O3T*100);
@@ -458,10 +460,14 @@ ${X.sec?`<p class="small" style="margin:10px 0 4px"><b>Secondo: ${esc(X.sec.n)}<
 ${X.fr?`<p class="small" style="margin:10px 0 4px"><b>Frutta o dolce: ${esc(X.fr.n)}</b></p><ul class="plain small">${X.fr.ing.map(li).join("")}</ul>`:""}
 ${sw.length?`<p class="small" style="margin:8px 0 0"><b>Prodotti cambiati:</b> ${sw.map(i=>esc(i[5])+" → "+esc(i[0])).join(", ")}. Segui la stessa ricetta usando il nuovo prodotto al posto del vecchio.</p>`:""}
 <details style="margin-top:8px"><summary class="small">Ricetta passo passo (induzione)</summary><ol class="small" style="display:grid;gap:4px">${r.s.map(x=>`<li>${esc(sw.reduce((t,i)=>t.split(i[5]).join(i[0]),x))}</li>`).join("")}</ol></details>
-<div class="row" style="margin-top:10px">${vo===0?`<button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button>`:""}${vo===0?`<button class="g" data-alt="${type}">Ho mangiato altro</button>`:""}<button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
+${(()=>{const M=S.meals.find(m=>m.d===dk()&&m.type===TN[type]&&m.plan);return vo===0&&M&&M.skip&&M.skip.length?`<p class="small" style="margin:8px 0 0">Mangiato tranne: <b>${M.skip.map(esc).join(", ")}</b></p>`:""})()}${vo===0&&excT===type&&!done?`<div style="margin-top:10px;border-top:1px solid var(--line,#ddd);padding-top:8px"><p class="small" style="margin:0 0 6px"><b>Cosa non hai mangiato?</b></p>${[...new Set(mealIng(type,D).map(i=>i[0]))].map(n=>`<label class="row small"><input type="checkbox" class="exc-i" value="${esc(n)}"> ${esc(n)}</label>`).join("")}<div class="row" style="margin-top:6px"><button class="b" data-excok="${type}">Salva</button><button class="g" data-excno="1">Annulla</button></div></div>`:""}
+<div class="row" style="margin-top:10px">${vo===0?`<button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button>`:""}${vo===0&&!done?`<button class="g" data-exc="${type}">Sì, tranne…</button>`:""}${vo===0?`<button class="g" data-alt="${type}">Ho mangiato altro</button>`:""}<button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
 document.addEventListener("click",e=>{const t=e.target;
  if(t.dataset.swap){const k=dk(VD())+t.dataset.swap;S.swap[k]=(S.swap[k]||0)+1;save();render()}
  if(t.dataset.eat){const ty=TN[t.dataset.eat];if(!S.meals.some(m=>m.d===dk()&&m.type===ty)){S.meals.push({d:dk(),type:ty,txt:pick(t.dataset.eat,new Date()).n,at:Date.now(),plan:1});save();toast("Registrato");render()}}
+ if(t.dataset.exc){excT=t.dataset.exc;render()}
+ if(t.dataset.excno){excT="";render()}
+ if(t.dataset.excok){const ty=TN[t.dataset.excok],sk=[...t.closest(".card").querySelectorAll(".exc-i:checked")].map(x=>x.value);if(!S.meals.some(m=>m.d===dk()&&m.type===ty)){S.meals.push({d:dk(),type:ty,txt:pick(t.dataset.excok,new Date()).n,at:Date.now(),plan:1,skip:sk});excT="";save();toast(sk.length?"Registrato, senza: "+sk.join(", "):"Registrato");render()}}
  if(t.dataset.no){S.no=S.no||[];if(R[t.dataset.no].length-S.no.filter(n=>R[t.dataset.no].some(r=>r.n===n)).length>3){S.no.push(pick(t.dataset.no,VD()).n);save();toast("Non te lo propongo più");render()}else toast("Lasciami almeno 3 piatti")}
  if(t.dataset.del){S.gone=S.gone||[];S.gone.push(+t.dataset.del);S.meals=S.meals.filter(m=>m.at!=t.dataset.del);save();render()}
 });
@@ -571,6 +577,9 @@ function addOwn(n,q,st){n=n.trim();if(!n)return;const cat=catOf(n),bad=cat==="Al
 document.addEventListener("submit",e=>{if(e.target.id!=="f-add")return;e.preventDefault();addOwn($("ad-n").value,$("ad-q").value.trim(),$("ad-s").value);$("ad-n").value="";$("ad-q").value=""});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-xdel]");if(!t)return;const n=t.dataset.xdel;S.xshop=(S.xshop||[]).filter(y=>y.n!==n);const L=S.shopList;L.items=L.items.filter(y=>!(y.n===n&&(y.own||y.need==="aggiunto da te")));S.shopList=Object.assign({},L);save();render()});
 const catX=x=>x.cat||(/^Sacchetti/.test(x.n)?"Casa e pulizia":x.own?catOf(x.n):"Alimenti"),CORD=["Alimenti","Casa e pulizia","Igiene personale"];
+document.addEventListener("click",e=>{const t=e.target.closest("[data-adv],#adv-reset");if(!t)return;const K=dk();S.advOv=Object.assign({},S.advOv||{});
+ if(t.id==="adv-reset")delete S.advOv[K];else{const n=t.dataset.adv,a=studyAdvice(new Date()),O=Object.assign({},S.advOv[K]||{}),cur_=O[n]!=null?O[n]:(a.tot[n]||0);O[n]=t.dataset.dm==="x"?0:Math.max(0,cur_+ +t.dataset.dm);S.advOv[K]=O;if(t.dataset.dm==="x")toast(n+": oggi non la studi, non conta come saltata")}
+ Object.keys(S.advOv).forEach(k=>{if(dDiff(K,k)>14)delete S.advOv[k]});save();render()});
 function subSel(x){const o=x.from||x.n,A=(ALT[o]||[]).filter(a=>a[0]!==x.n);return `<select data-sub="${esc(o)}" aria-label="Cambia ${esc(x.n)}" style="width:auto;max-width:100px;font-size:13px;padding:4px 6px;min-height:0;border:1px solid currentColor;border-radius:8px"><option value="">Cambia ▾</option>${A.map(a=>`<option value="a:${esc(a[0])}">${esc(a[0])}</option>`).join("")}${x.from?`<option value="r">Torna a ${esc(o)}</option>`:""}<option value="b">Non lo voglio: cambia le ricette</option></select>`}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.sub===undefined||!t.value)return;const o=t.dataset.sub,v=t.value;S.subI=S.subI||{};S.banI=S.banI||[];
  if(v==="r")delete S.subI[o];else if(v==="b"){delete S.subI[o];if(!S.banI.includes(o))S.banI.push(o);toast("Non ti propongo più ricette con "+o)}else{S.subI[o]=v.slice(2);toast(o+" → "+v.slice(2)+": ricette aggiornate")}
@@ -626,6 +635,15 @@ $("sleep-wake").onclick=()=>{if(!S.sleepStart)return toast("Prima premi Vado a d
 $("f-sleep").onsubmit=e=>{e.preventDefault();const a=+new Date($("sl-a").value),b=+new Date($("sl-b").value);if(!(b>a))return toast("Controlla gli orari");S.sleep.push({a,b});save();toast("Salvato");render()};
 
 // ---------- studio
+// menu materia: non si azzera mai da solo (prima la sincronizzazione lo riportava alla prima materia); se lo cambi mentre conta, la sessione si divide
+function allSubj(){const a=subjList();S.set.subj.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>{const l=x.toLowerCase();if(!a.some(y=>{const m=y.toLowerCase();return m.startsWith(l)||l.startsWith(m)}))a.push(x)});return a}
+function fillSubj(){const el=$("st-subj");if(!el||document.activeElement===el)return;const v=cur?cur.subj:el.value,L=allSubj();if(v&&!L.includes(v))L.unshift(v);const h=L.map(n=>`<option${n===v?" selected":""}>${esc(n)}</option>`).join("");if(el.innerHTML!==h)el.innerHTML=h}
+document.addEventListener("change",e=>{if(e.target.id!=="st-subj")return;const v=e.target.value;if(cur&&cur.subj!==v){if(cur.s>=60)S.sess.push({a:cur.a,s:cur.s,subj:cur.subj,src:cur.src});cur={a:Date.now(),s:0,subj:v,src:cur.src};save();toast("Da ora conto "+v);renderSessList()}});
+function fix55(){if(S.fx55||dk()>"2026-10-29")return;const K="2026-10-27",MV=2417,inf=allSubj().find(n=>/^informatica/i.test(n))||"Informatica",L=(S.sess||[]).filter(x=>dk(new Date(x.a))===K&&/^analisi/i.test(nsub(x.subj))).sort((a,b)=>Math.abs(a.s-MV)-Math.abs(b.s-MV));
+ if(!L.length)return;S.fx55=1;const x=L[0];if(Math.abs(x.s-MV)<=120)x.subj=inf;else{const y=L.find(z=>z.s>MV);if(!y){save();return}y.s-=MV;S.sess.push({a:y.a+y.s*1000,s:MV,subj:inf,src:y.src})}S.sess=[...S.sess];save();toast("Spostati 40:17 da Analisi a Informatica")}
+function renderSessList(){const el=$("st-sess");if(!el)return;const t0=new Date();t0.setHours(0,0,0,0);const L=(S.sess||[]).filter(x=>x.a>=+t0).sort((a,b)=>a.a-b.a),subs=allSubj();
+ el.innerHTML=L.length?L.map(x=>`<li class="row" style="justify-content:space-between;gap:6px"><span class="num">${new Date(x.a).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})} · ${hms(x.s)}</span><select data-sessa="${x.a}" style="width:auto;max-width:170px;font-size:13px;padding:4px;min-height:0">${(subs.includes(x.subj)?subs:[x.subj,...subs]).map(n=>`<option${n===x.subj?" selected":""}>${esc(n)}</option>`).join("")}</select></li>`).join(""):'<li class="small mute">Ancora nessuna sessione oggi.</li>'}
+document.addEventListener("change",e=>{const a=e.target.dataset.sessa;if(!a)return;S.sess=S.sess.map(x=>x.a==a?Object.assign({},x,{subj:e.target.value}):x);save();toast("Materia cambiata");render()});
 let tRun=false,ytPlay=false,cur=null,player=null;
 const active=()=>tRun||((ytPlay||plOn()||noiseOn)&&$("st-yt").checked);
 function tick(){const on=active();
@@ -695,7 +713,7 @@ $("g-dark").checked=document.documentElement.dataset.theme==="dark";$("g-dark").
 document.addEventListener("click",e=>{const t=e.target;
  if(t.dataset.hide!==undefined){const D=VD(),K=dk(D),p=planFor(D,toMin(S.set.wake),toMin(S.set.bed)).find(q=>pkey(q)===t.dataset.hide),st=!!p&&(p[3]==="S"||/Ripasso a caldo/.test(p[1]));S.hide=S.hide||[];S.hide.push({id:Date.now(),d:K,k:t.dataset.hide,s:st?1:0});
   if(st&&p[3]==="S"&&(p[5]||[]).length){S.chk=S.chk||[];if(!S.chk.some(c=>c.id===K+"|"+p[0]))S.chk.push({id:K+"|"+p[0],d:K,k:"n",p:p[5],hid:1,at:Date.now()})}
-  save();if(st)toast("Blocco di studio tolto: lo conto come ore da recuperare");render()}
+  save();if(st)toast("Blocco di studio tolto: lo conto come ore da recuperare nel weekend");render()}
  if(t.id==="unhide"){S.gone=S.gone||[];(S.hide||[]).filter(h=>h.d===dk(VD())).forEach(h=>S.gone.push(h.id));S.chk=(S.chk||[]).filter(c=>!(c.hid&&c.d===dk(VD())));S.hide=S.hide.filter(h=>h.d!==dk(VD()));save();render()}
  if(t.dataset.cudel){S.gone=S.gone||[];S.gone.push(+t.dataset.cudel);S.cust=S.cust.filter(x=>x.id!=t.dataset.cudel);save();render()}
  if(t.dataset.evdel){S.gone=S.gone||[];S.gone.push(+t.dataset.evdel);S.evs=S.evs.filter(x=>x.id!=t.dataset.evdel);save();render()}});
@@ -796,7 +814,7 @@ try{const q=new URLSearchParams(location.search).get("h");if(q&&importH(q)){hist
 
 // ---------- impostazioni e backup
 function fillSet(){const s=S.set;$("g-wake").value=s.wake;$("g-bed").value=s.bed;$("g-study").value=s.study;$("g-keep").value=s.keep??"Chimica";$("g-notion").value=s.notion??"Chimica";$("g-budget").value=s.budget||200;$("g-badj").value=(S.badj||{})[dk().slice(0,7)]||0;$("g-subj").value=s.subj;$("g-key").value=s.key;
- $("st-subj").innerHTML=s.subj.split(",").map(x=>x.trim()).filter(Boolean).map(x=>`<option>${esc(x)}</option>`).join("")}
+ fillSubj()}
 $("f-set").onsubmit=e=>{e.preventDefault();S.badj=Object.assign({},S.badj,{[dk().slice(0,7)]:+$("g-badj").value||0});Object.assign(S.set,{wake:$("g-wake").value,bed:$("g-bed").value,study:+$("g-study").value,keep:$("g-keep").value.trim(),notion:$("g-notion").value.trim(),budget:+$("g-budget").value||200,subj:$("g-subj").value,key:$("g-key").value.trim()});save();fillSet();toast("Salvato");render()};
 $("bk-copy").onclick=()=>{const t=JSON.stringify(S);$("bk-txt").value=t;navigator.clipboard.writeText(t).then(()=>toast("Backup copiato"),()=>{$("bk-txt").select();toast("Seleziona e copia il testo")})};
 $("bk-load").onclick=()=>{try{const o=JSON.parse($("bk-txt").value);if(!o.set)throw 0;S=o;save();fillSet();render();toast("Ripristinato")}catch(e){toast("Backup non valido")}};
@@ -837,7 +855,7 @@ function nextWE(d){const x=new Date(d);while(x.getDay()!==6&&x.getDay()!==0)x.se
 // ---------- materie, prove ed esami: pesi di studio per giorno (tutto calcolato sul dispositivo)
 // peso = 1 + materia da non lasciare indietro + vicinanza prova (10 gg) o esame (21 gg) + recupero se negli ultimi 7 gg hai studiato poco quella materia
 const nsub=c=>String(c).replace(/\s*\(.*?\)/g,"").split(" / ")[0].trim();
-const fdur=m=>m>=60?Math.floor(m/60)+"h"+(m%60?pad(m%60):""):m+"'";
+const fdur=m=>{m=Math.round(m);return m>=60?Math.floor(m/60)+"h"+(m%60?" "+(m%60)+"m":""):m+"min"};
 const dDiff=(a,b)=>Math.round((new Date(a+"T12:00:00")-new Date(b+"T12:00:00"))/864e5);
 function subjList(){let subs=[...new Set((S.ora||[]).map(l=>nsub(l.c)))];(S.exams||[]).forEach(x=>{if(!subs.includes(nsub(x.c)))subs.push(nsub(x.c))});if(!subs.length)subs=S.set.subj.split(",").map(x=>x.trim()).filter(Boolean);return subs}
 function subjW(d){const k=dk(d),keep=(S.set.keep??"Chimica").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean),subs=subjList();
@@ -874,7 +892,7 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   else if(K==="2026-10-27"){}else if(K==="2026-10-28"){if(!((S.shopList||{}).fin||{}).M)sslot(grp.length?grp[grp.length-1][1]+20:600,45,`<b>Spesa al Mercatò</b> <span class="mute">(quello che manca: lista in Spesa)</span>`)}
   else if(wd===0)sslot(930,60,`<b>Spesa da In's</b> <span class="mute">(la domenica apre alle 15:30; lista in Spesa: secco, scatolame, latte, surgelati)</span>`);
   else if(wd===1)sslot(!bus?540:les[0][0]>=660?Math.max(w+10+BL+SH+5,510):grp[grp.length-1][1]+20,45,`<b>Spesa al Mercatò</b> <span class="mute">(frutta, verdura, patate, carne fresca)</span>`)}
- const en=dk(d)===dk()?energy():{e:1};const evD=(S.evs||[]).filter(x=>!gn.includes(x.id)&&x.a<=K_&&K_<=x.b);let cap=Math.round((S.set.study||5)*60*en.e*(evD.length?Math.min(...evD.map(x=>x.f)):1));evD.forEach(x=>P.push([w+1,`<b>${esc(x.n)}</b> <span class="mute">(oggi studio ${x.f?"ridotto al "+x.f*100+"%":"in pausa"}, goditela)</span>`]));const rc_=en.e>=0.75&&!evD.length?recFor(d):{},rcT=Object.values(rc_).reduce((a,x)=>a+x,0);cap+=rcT;const evOff=evD.some(x=>!x.f),MIN=evD.length?Math.round(150*Math.min(...evD.map(x=>x.f))):150;cap=Math.max(cap,MIN);
+ const en=dk(d)===dk()?energy():{e:1};const evD=(S.evs||[]).filter(x=>!gn.includes(x.id)&&x.a<=K_&&K_<=x.b);let cap=Math.round((S.set.study||5)*60*en.e*(evD.length?Math.min(...evD.map(x=>x.f)):1));evD.forEach(x=>P.push([w+1,`<b>${esc(x.n)}</b> <span class="mute">(oggi studio ${x.f?"ridotto al "+x.f*100+"%":"in pausa"}, goditela)</span>`]));const rc_=en.e>=0.75&&!evD.length?recFor(d):{},rcT=Object.values(rc_).reduce((a,x)=>a+x,0);cap+=rcT;const evOff=evD.some(x=>!x.f),MIN=0;
  (S.exams||[]).filter(x=>x.d===dk(d)&&x.a).forEach(x=>{const a=toMin(x.a);busy.push([a-30,a+150]);P.push([a,`<b>${x.k==="E"?"Esame":"Prova in itinere"}: ${esc(x.c)}</b>`,a+150])});
  if(grp.length){const subs=[...new Set(les.map(l=>nsub(l[2].c)))],nt=(S.set.notion??"Chimica").split(",").map(x=>x.trim().toLowerCase());const parts=subs.map(n=>[n,nt.includes(n.toLowerCase())?20:15]),len=parts.reduce((a,x)=>a+x[1],0);
   if(slot(grp[grp.length-1][1]+5,len,`<b>Ripasso a caldo</b>: ${parts.map(([n,m])=>esc(n)+" "+m+"'").join(" · ")}${parts.some(x=>x[1]===20)?` <span class="mute">(su Notion aggiungi solo i pezzi persi)</span>`:""}`))cap-=len}
@@ -882,6 +900,9 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   if(canNap&&(napOn||en.e<1)){busy.push([lu+LL+5,lu+LL+30]);P.push([lu+LL+5,`<b>Power nap 20 minuti</b> ${napOn?NB("Oggi no"):'<span class="mute">(oggi sei stanco)</span>'}<details class="small" style="margin-top:4px"><summary>Come farlo bene</summary><ol style="display:grid;gap:3px"><li>Subito dopo pranzo e mai dopo le 15, se no rovina il sonno della notte.</li><li>Bevi il caffè appena prima di sdraiarti: inizia a fare effetto dopo circa 20 minuti, proprio quando ti svegli.</li><li>Sveglia a 25 minuti da quando ti sdrai (5 per addormentarti, 20 di sonno). Oltre i 30 entri nel sonno profondo e ti svegli intontito.</li><li>Buio: tapparella giù o mascherina, telefono in Full Immersion e lontano dal letto.</li><li>Sdraiati sopra le coperte, non sotto: il corpo capisce che è una pausa breve.</li><li>Non serve addormentarsi: stare a occhi chiusi e rilassato riposa già. Respira 4 secondi dentro e 6 fuori, e rilassa una parte del corpo alla volta, dai piedi alla testa.</li><li>Al risveglio: luce, un bicchiere d'acqua e 2 minuti in piedi, poi si studia.</li></ol></details>`,lu+LL+25]);if(napOn)cap+=30}
   else if(canNap)P.push([lu+LL+5,`<span class="mute">Power nap di 20 minuti?</span> ${NB("Sì, lo faccio")} <span class="small mute">(ti dà più energia per studiare nel pomeriggio)</span>`])}
  busy.sort((x,y)=>x[0]-y[0]);
+ // obiettivo del giorno = 90% del tempo libero fino a cena (massimo l'obiettivo in Opzioni), ridotto da sonno/pasti/eventi, più il recupero del weekend
+ {let F=0,cc=c;for(const x of [...busy,[1200,1200]]){const end=Math.min(x[0],1200)-10;if(end-cc>=40)F+=end-cc;cc=Math.max(cc,x[1]+10)}const evF=evD.length?Math.min(...evD.map(x=>x.f)):1;
+  cap=Math.round(Math.min(0.9*F,(S.set.study||5)*60)*en.e*evF/5)*5+rcT;P.free_=F;P.goal_=cap}
  for(const x of [...busy,[1200,1200]]){let end=Math.min(x[0],1200)-10;if(end-c>=40){const len=Math.min(end-c,cap);if(len>=40){const lab=en.e<1?"Studio leggero":"Studio libero",bl=en.e<0.75?"blocchi da 25 min + 5 di pausa":"blocchi da 50 min + 10 di pausa";P.push([c,`${lab} (${Math.floor(len/60)}h${pad(len%60)}${len>=100||en.e<0.75?", "+bl:""})`,c+len,"S",bl]);cap-=len;if(end-c-len>=40)P.push([c+len+10,"Tempo libero o riposo",end])}else P.push([c,"Tempo libero o riposo",end])}c=Math.max(c,x[1]+10)}
  {const dn=P.find(p=>/^(Cena|Cena di recupero) </.test(p[1])),done_=P.filter(p=>p[3]==="S").reduce((a,p)=>a+p[2]-p[0],0),need=Math.min(cap,MIN-done_),s0=dn?dn[2]+15:1260,bX=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b,room=bX-40-s0;
   if(need>0&&room>=25){const len=Math.min(Math.max(25,need),room,120);P.push([s0,"<b>Studio serale</b>",s0+len,"S","blocchi da 25 min + 5 di pausa"]);P.ev_=s0+len+5}}
@@ -896,10 +917,10 @@ function planFor(d,w,b){const sp=sportDay(d),les=(S.ora||[]).filter(l=>l.d===d.g
   if(0)P.push([Math.max(tb[0]+50,960),`Pausa tè nero <span class="mute">(giornata di tanto studio: ultima caffeina. Al massimo 1 cucchiaino di zucchero, non 3, e una fetta di limone; poi solo acqua)</span>`])}
  if((S.exams||[]).some(x=>dDiff(x.d,dk(d))===1))P.push([1230,"Sera prima della prova: solo ripasso leggero degli schemi, niente cose nuove"]);
  const bed=en.e<=0.75||(S.exams||[]).some(x=>dDiff(x.d,dk(d))===1)?b-30:b;P.push([P.ev_||1260,sp&&!P.ev_?"Sera libera: videogiochi o relax, dopo lo sport te lo sei guadagnato":P.ev_?"Poi sera libera: videogiochi, serie o relax":"Sera libera: videogiochi, serie o relax. Niente studio"],[bed-30,"Schermi spenti, prepara lo zaino"],[bed,en.e<=0.75?"A letto prima del solito: recuperi il sonno":sp?"A letto: dopo lo sport il sonno conta doppio":"A letto"]);
- (S.chk||[]).filter(c=>c.d===K_).forEach(c=>{const p=P.find(q=>q[3]==="S"&&K_+"|"+q[0]===c.id);if(!p)return;p[6]=c.k;p[1]=c.k==="n"?`<s class="mute">${p[1].replace(/<[^>]+>/g,"")}</s> <span class="small" style="color:var(--bad)">saltato: ore spostate nei prossimi giorni</span>`:p[1]+` <span class="small" style="color:var(--good)">✓ fatto</span>`});
- const why=[],lm=les.reduce((a,l)=>a+l[1]-l[0],0);if(en.e<1)why.push(...(en.why||[]).filter(Boolean).map(x=>x.replace(/\.$/,"")));{const tS=P.filter(p=>p[3]==="S").reduce((a,p)=>a+p[2]-p[0],0);if(tS<150&&!evD.length)why.push(`tra lezioni${sp?", ping pong":""} e bus oggi c'è spazio solo per ${fdur(tS)} di studio: il resto lo recuperi nei prossimi giorni`)}if(sp)why.push("c'è il ping pong nel pomeriggio, e dopo la sera è libera");evD.forEach(x=>why.push(`c'è "${x.n}" (studio al ${x.f*100}%)`));if(P.some(p=>p[3]==="C"))why.push("hai degli impegni tuoi in programma");
+ (S.chk||[]).filter(c=>c.d===K_).forEach(c=>{const p=P.find(q=>q[3]==="S"&&K_+"|"+q[0]===c.id);if(!p)return;p[6]=c.k;p[1]=c.k==="n"?`<s class="mute">${p[1].replace(/<[^>]+>/g,"")}</s> <span class="small" style="color:var(--bad)">saltato: lo trovi nel recupero del weekend</span>`:p[1]+` <span class="small" style="color:var(--good)">✓ fatto</span>`});
+ const why=[],lm=les.reduce((a,l)=>a+l[1]-l[0],0);if(en.e<1)why.push(...(en.why||[]).filter(Boolean).map(x=>x.replace(/\.$/,"")));{const tS=P.filter(p=>p[3]==="S").reduce((a,p)=>a+p[2]-p[0],0);if(P.free_!=null&&!evD.length)why.push(`oggi hai ${fdur(P.free_)} di tempo libero: obiettivo ${fdur(P.goal_)}${en.e<1?" (ridotto per come hai dormito o mangiato)":" (il 90%)"}`)}if(sp)why.push("c'è il ping pong nel pomeriggio, e dopo la sera è libera");evD.forEach(x=>why.push(`c'è "${x.n}" (studio al ${x.f*100}%)`));if(P.some(p=>p[3]==="C"))why.push("hai degli impegni tuoi in programma");
  if(!why.length)why.push("prima delle 19 resta poco tempo libero, e la sera è libera per scelta");
- const hd=(S.hide||[]).filter(h=>h.d===K_&&!gn.includes(h.id)).map(h=>h.k),out=P.filter(p=>!hd.includes(pkey(p))).sort((x,y)=>x[0]-y[0]);out.why=why;return out}
+ const hd=(S.hide||[]).filter(h=>h.d===K_&&!gn.includes(h.id)).map(h=>h.k),out=P.filter(p=>!hd.includes(pkey(p))).sort((x,y)=>x[0]-y[0]);out.why=why;out.free_=P.free_;out.goal_=out.filter(p=>p[3]==="S").reduce((x,p)=>x+p[2]-p[0],0);return out}
 const pkey=p=>String(p[1]).replace(/<[^>]+>/g,"").slice(0,30);
 function renderOrario(){const o=S.ora||[];$("or-week").innerHTML=[1,2,3,4,5,6].map(d=>{const l=o.map((x,i)=>[x,i]).filter(x=>x[0].d===d).sort((a,b)=>a[0].a<b[0].a?-1:1);return l.length?`<h3 style="margin-top:10px">${DN[d]}</h3><ul class="plain small">${l.map(([x,i])=>`<li class="row" style="justify-content:space-between"><span><span class="num">${x.a}–${x.b}</span> ${esc(x.c)} <span class="mute">${esc(x.r||"")}</span></span><button class="g small" data-ordel="${i}" style="padding:2px 8px">Togli</button></li>`).join("")}</ul>`:""}).join("")||'<p class="mute small">Nessuna lezione inserita.</p>'}
 $("f-or").onsubmit=e=>{e.preventDefault();const c=$("or-c").value.trim();if(!c||$("or-b").value<=$("or-a").value)return toast("Inserisci corso e orari validi");S.ora=S.ora||[];S.ora.push({d:+$("or-d").value,a:$("or-a").value,b:$("or-b").value,c,r:$("or-r").value.trim()});$("or-c").value="";$("or-r").value="";save();toast("Lezione aggiunta");render()};
@@ -909,6 +930,7 @@ $("f-orimp").onsubmit=e=>{e.preventDefault();let v=$("or-imp").value.trim();try{
 
 // ---------- consigli automatici (regole, nessuna AI)
 function coach(){const out=[],d7=last7(),H=d7.map(d=>S.health[dk(d)]).filter(Boolean);
+ {const y=dk(new Date(Date.now()-864e5)),n=(S.chk||[]).filter(c=>c.k==="n"&&(c.d===dk()||c.d===y)&&!(S.gone||[]).includes(c.id));if(n.length){const t=n.reduce((a,c)=>a+(c.p||[]).reduce((x,q)=>x+q[1],0),0),td=n.some(c=>c.d===dk());out.push(["bad",`${td?"Oggi":"Ieri"} non hai studiato quando era previsto (${fdur(t)} saltate): le ritrovi nel recupero del weekend.`])}}
  const sl=d7.map(sleepFor).filter(Boolean),avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
  if(sl.length>=2){const a=avg(sl);out.push(a<7?["bad",`Dormi in media ${a.toFixed(1)} h: sotto le 7 h memoria e attenzione calano. Anticipa il letto di 30 min questa settimana.`]:["good",`Sonno medio ${a.toFixed(1)} h: ottimo, mantieni gli orari.`])}
  else out.push(["mute","Servono almeno 2 notti di dati sul sonno (pulsanti in Sonno o Comando Rapido)."]);
@@ -929,7 +951,7 @@ const coachHtml=a=>a.map(x=>`<li style="border-left:3px solid ${CC[x[0]]};paddin
 
 // ---------- consiglio di studio per materia (dalla giornata di oggi)
 function studyAdvice(d){const w=toMin(S.set.wake),b=toMin(S.set.bed),P=planFor(d,w,b),tot={};P.forEach(p=>p[6]!=="n"&&(p[5]||[]).forEach(([n,m])=>tot[n]=(tot[n]||0)+m));
- const rev=P.find(p=>/Ripasso a caldo/.test(p[1]));return{tot,rev:rev?rev[2]-rev[0]:0,why:P.why||[]}}
+ const rev=P.find(p=>/Ripasso a caldo/.test(p[1]));return{tot,rev:rev?rev[2]-rev[0]:0,why:P.why||[],goal:P.goal_||0,free:P.free_||0}}
 // ---------- mensa: piatti con stime locali [nome,kcal,proteine g,gruppo] (v=verdura,f=fritto)
 const MZ=[["Primo",[["Pasta al pomodoro",420,13],["Pasta al ragù",520,20],["Pasta al pesto o burro",540,14],["Riso o risotto",450,10],["Lasagne",600,25],["Minestra o passato",200,8,"v"]]],
  ["Secondo",[["Pollo o tacchino",250,30],["Cotoletta",420,24,"f"],["Carne rossa o hamburger",350,28],["Pesce",230,26],["Bastoncini o pesce impanato",350,16,"f"],["Uova o frittata",260,18],["Formaggio",320,20],["Legumi",220,14,"v"]]],
@@ -954,10 +976,16 @@ $("mn-go").onclick=()=>{if(!mzSel.size)return toast("Tocca almeno un piatto");co
 
 // ---------- "Hai studiato?" e ore da recuperare
 function debtAt(k){const s=new Date(k+"T12:00:00");s.setDate(s.getDate()-14);const since=dk(s),D={};
- (S.chk||[]).filter(c=>c.d<k&&c.d>=since&&!(S.gone||[]).includes(c.id)).forEach(c=>(c.p||[]).forEach(([n,m,r])=>{D[n]=(D[n]||0)+(c.k==="n"?m-(r||0):-(r||0))}));
+ (S.chk||[]).filter(c=>c.d<k&&c.d>=since&&!(S.gone||[]).includes(c.id)).forEach(c=>(c.p||[]).forEach(([n,m,r])=>{const ov=((S.advOv||{})[c.d]||{})[n];if(ov===0)return;if(ov!=null)m=Math.min(m,ov);D[n]=(D[n]||0)+(c.k==="n"?m-(r||0):-(r||0))}));
  Object.keys(D).forEach(n=>{D[n]=Math.round(D[n]/25)*25;if(D[n]<=0)delete D[n]});return D}
-function recFor(d){const k=dk(d),t=dk(),i=Math.max(0,dDiff(k,t)),tm=new Date();tm.setDate(tm.getDate()+1);const D=debtAt(i?dk(tm):k);let skip=60*Math.max(0,i-1),lim=60;const o={};
- Object.entries(D).sort((a,b)=>b[1]-a[1]).forEach(([n,m])=>{const s_=Math.min(skip,m);skip-=s_;m-=s_;const g=Math.min(m,lim);if(g>=25){o[n]=g;lim-=g}});return o}
+// ore saltate in settimana: niente recupero nei giorni feriali, si propongono sabato (metà) e domenica (il resto)
+function weekMon(d){const m=new Date(d);m.setHours(12,0,0,0);m.setDate(m.getDate()-((m.getDay()+6)%7));return m}
+function weekDebt(d){const mon=weekMon(d),sat=new Date(mon);sat.setDate(sat.getDate()+5);const k=dk(d)<dk(sat)?dk(d):dk(sat),since=dk(mon),D={};
+ (S.chk||[]).filter(c=>c.d<k&&c.d>=since&&!(S.gone||[]).includes(c.id)).forEach(c=>(c.p||[]).forEach(([n,m,r])=>{const ov=((S.advOv||{})[c.d]||{})[n];if(ov===0)return;if(ov!=null)m=Math.min(m,ov);D[n]=(D[n]||0)+(c.k==="n"?m-(r||0):0)}));
+ Object.keys(D).forEach(n=>{D[n]=Math.round(D[n]/25)*25;if(D[n]<=0)delete D[n]});return D}
+function recFor(d){const wd=d.getDay();if(wd!==6&&wd!==0)return{};const W=weekDebt(d),o={};let lim=wd===6?180:240;
+ const done={};(S.chk||[]).filter(c=>c.d>=dk(weekMon(d))&&c.d<dk(d)&&c.k==="y").forEach(c=>(c.p||[]).forEach(([n,m,r])=>{if(r)done[n]=(done[n]||0)+r}));
+ Object.entries(W).sort((a,b)=>b[1]-a[1]).forEach(([n,m])=>{m-=done[n]||0;if(wd===6)m=Math.max(25,Math.round(m/2/25)*25);const g=Math.min(m,lim);if(g>=25){o[n]=g;lim-=g}});return o}
 function pendChk(){const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date(),nm=now.getHours()*60+now.getMinutes(),out=[];let ch=0;
  [1,0].forEach(i=>{const d=new Date();d.setDate(d.getDate()-i);d.setHours(12,0,0,0);const k=dk(d),d0=new Date(d);d0.setHours(0,0,0,0);
   planFor(d,w,b).filter(p=>p[3]==="S"&&(p[5]||[]).length&&(i||p[2]<=nm)).forEach(p=>{const id=k+"|"+p[0];if((S.chk||[]).some(c=>c.id===id))return;
@@ -965,22 +993,25 @@ function pendChk(){const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date(),n
    if(tm>=0.6*(p[2]-p[0])*60){S.chk=S.chk||[];S.chk.push({id,d:k,k:"y",p:p[5],src:"timer"});ch=1}else out.push({id,d:k,i,a:p[0],z:p[2],p:p[5]})})});
  if(ch)save();return out}
 function ansChk(id,k,all){const L=pendChk(),x=L.find(c=>c.id===id);if(!x)return;S.chk=S.chk||[];
- const todo=all?L.filter(c=>c.d===x.d).concat(planFor(new Date(x.d+"T12:00:00"),toMin(S.set.wake),toMin(S.set.bed)).filter(p=>p[3]==="S"&&(p[5]||[]).length&&p[0]>x.a).map(p=>({id:x.d+"|"+p[0],d:x.d,a:p[0],z:p[2],p:p[5]}))):[x];
+ const todo=all==="g"?L.filter(c=>c.d===x.d):all?L.filter(c=>c.d===x.d).concat(planFor(new Date(x.d+"T12:00:00"),toMin(S.set.wake),toMin(S.set.bed)).filter(p=>p[3]==="S"&&(p[5]||[]).length&&p[0]>x.a).map(p=>({id:x.d+"|"+p[0],d:x.d,a:p[0],z:p[2],p:p[5]}))):[x];
  const seen=new Set();todo.forEach(c=>{if(seen.has(c.id)||S.chk.some(y=>y.id===c.id))return;seen.add(c.id);S.chk.push({id:c.id,d:c.d,k,p:c.p,at:Date.now()});
   if(k==="y"){const d0=new Date(c.d+"T00:00:00");let t=+d0+c.a*6e4;c.p.forEach(([n,m])=>{S.sess.push({a:t,s:m*60,subj:n,src:"check"});t+=m*6e4});S.study[c.d]=(S.study[c.d]||0)+c.p.reduce((s,q)=>s+q[1]*60,0)}});
- save();toast(k==="y"?"Segnato, bravo!":"Ok, le ore le recuperi nei prossimi pomeriggi");render()}
-function renderChk(){const L=pendChk(),tm=new Date();tm.setDate(tm.getDate()+1);const D=debtAt(dk(tm)),dt=Object.entries(D),dS=dt.reduce((a,x)=>a+x[1],0);
- const h=L.length?`<h2>Hai studiato?</h2><ul class="plain">${L.map(c=>`<li><div><b>${c.i?"Ieri":"Oggi"} ${fromMin(c.a)}–${fromMin(c.z)}</b> <span class="mute">${c.p.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}</span></div><div class="row" style="gap:6px;margin-top:6px"><button type="button" class="b" data-ci="${c.id}" data-ck="y">Sì</button><button type="button" class="g" data-ci="${c.id}" data-ck="n">No</button>${c.i?"":`<button type="button" class="g" data-ci="${c.id}" data-ck="n" data-call="1">No, oggi salto tutto</button>`}</div></li>`).join("")}</ul>`:"";
- const dh=dS?`<p class="small" style="margin-bottom:0"><b>Da recuperare: ${fdur(dS)}</b> (${dt.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}). Le rimetto nei prossimi pomeriggi, massimo 1 h al giorno e mai dopo le 19: la sera resta libera.</p>`:"";
+ save();toast(k==="y"?"Segnato, bravo!":"Ok, segnato nel resoconto. Le ore te le ripropongo nel weekend");render()}
+function renderChk(){const L=pendChk(),tm=new Date();tm.setDate(tm.getDate()+1);const D=weekDebt(tm),dt=Object.entries(D),dS=dt.reduce((a,x)=>a+x[1],0);
+ const G=[...new Map(L.map(c=>[c.d,c])).values()],part=m=>m<720?"stamattina":m<1140?"oggi pomeriggio":"stasera";
+ const h=G.length?`<h2>Hai studiato?</h2><ul class="plain">${G.map(c=>`<li><div><b>${c.i?"Ieri hai studiato?":"Hai studiato "+part(L.filter(x=>x.d===c.d).slice(-1)[0].a)+"?"}</b></div><div class="row" style="gap:6px;margin-top:6px"><button type="button" class="b" data-ci="${c.id}" data-ck="y">Sì</button><button type="button" class="g" data-ci="${c.id}" data-ck="n">No</button></div></li>`).join("")}</ul>`:"";
+ const dh=dS?`<p class="small" style="margin-bottom:0"><b>Da recuperare: ${fdur(dS)}</b> (${dt.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}). Nei giorni feriali non te le rimetto: le trovi nel consiglio di sabato e domenica.</p>`:"";
  const s7=new Date();s7.setDate(s7.getDate()-6);const hs=(S.hide||[]).filter(x=>x.s&&x.d>=dk(s7)&&!(S.gone||[]).includes(x.id)).length;
- const hn=hs?`<p class="small" style="margin:6px 0 0;color:var(--bad)"><b>Questa settimana hai tolto ${hs} ${hs===1?"blocco":"blocchi"} di studio dalla giornata.</b> Le ore finiscono da recuperare: se succede spesso, la giornata è troppo piena o l'orario non è realistico, dimmelo e lo cambiamo.</p>`:"";
+ const hn=hs?`<p class="small" style="margin:6px 0 0;color:var(--bad)"><b>Questa settimana hai tolto ${hs} ${hs===1?"blocco":"blocchi"} di studio dalla giornata.</b> Le ore finiscono nel recupero del weekend: se succede spesso, la giornata è troppo piena o l'orario non è realistico, dimmelo e lo cambiamo.</p>`:"";
  ["ci-oggi","ci-studio"].forEach((id,j)=>{const e=$(id);if(!e)return;const v=h+(j||h?dh:"")+(j?hn:"");e.innerHTML=v;e.hidden=!v})}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-ci]");if(t)ansChk(t.dataset.ci,t.dataset.ck,!!t.dataset.call)});
-function renderAdvice(){const a=studyAdvice(new Date()),L=Object.entries(a.tot).sort((x,y)=>y[1]-x[1]),sum=L.reduce((s,x)=>s+x[1],0)+a.rev;
+document.addEventListener("click",e=>{const t=e.target.closest("[data-ci]");if(t)ansChk(t.dataset.ci,t.dataset.ck,t.dataset.call?1:"g")});
+function renderAdvice(){const a=studyAdvice(new Date()),OV=(S.advOv||{})[dk()]||{};Object.keys(OV).forEach(n=>{if(!(n in a.tot)&&OV[n]>0)a.tot[n]=0});const L=Object.entries(a.tot).map(([n,m])=>[n,OV[n]!=null?OV[n]:m]).filter(x=>x[1]>0).sort((x,y)=>y[1]-x[1]),sum=L.reduce((s,x)=>s+x[1],0)+a.rev,hid=Object.keys(OV).filter(n=>OV[n]===0);
  const since=new Date();since.setHours(0,0,0,0);const done={};(S.sess||[]).filter(s=>s.a>=+since).forEach(s=>{const n=nsub(s.subj);done[n]=(done[n]||0)+s.s/60});if(cur&&cur.subj){const n=nsub(cur.subj);done[n]=(done[n]||0)+cur.s/60}
  $("sc-h").textContent=sum?`Oggi ti consiglio di studiare ${fdur(sum)}`:"Oggi niente studio in programma";
- $("sc-list").innerHTML=L.map(([n,m])=>{const dn=Math.round(done[n]||0);return `<li><div class="row" style="justify-content:space-between"><b>${esc(n)}</b><span class="num small">${fdur(dn)} / ${fdur(m)}</span></div><div class="bar"><i style="width:${Math.min(100,dn/m*100)}%"></i></div></li>`}).join("")+(a.rev?`<li class="small">+ <b>Ripasso a caldo</b> dopo lezione: ${fdur(a.rev)}</li>`:"")||'<li class="small mute">Oggi la giornata è piena (lezioni, sport o riposo).</li>';
- const tg=(S.set.study||5)*60;if(sum<tg-30&&!$("sc-why"))$("sc-h").insertAdjacentHTML("afterend",'<p class="small" id="sc-why" style="margin:0 0 8px"></p>');const wy=$("sc-why");if(wy){if(sum<tg-30)wy.innerHTML=`<b>Meno del tuo obiettivo di ${fdur(tg)}</b> perché ${a.why.join("; ")}. Il resto si recupera nei giorni più liberi.`;else wy.remove()}
+ $("sc-list").innerHTML=L.map(([n,m])=>{const dn=Math.round(done[n]||0);return `<li><div class="row" style="justify-content:space-between;gap:6px"><b style="flex:1">${esc(n)}</b><span class="num small">${fdur(dn)} / ${fdur(m)}</span><span class="row" style="gap:4px"><button type="button" class="g small" data-adv="${esc(n)}" data-dm="-15" style="padding:0 8px;min-height:0">−15</button><button type="button" class="g small" data-adv="${esc(n)}" data-dm="15" style="padding:0 8px;min-height:0">+15</button><button type="button" class="g small" data-adv="${esc(n)}" data-dm="x" aria-label="Oggi non la studio" style="padding:0 8px;min-height:0">×</button></span></div><div class="bar"><i style="width:${Math.min(100,dn/m*100)}%"></i></div></li>`}).join("")+(a.rev?`<li class="small">+ <b>Ripasso a caldo</b> dopo lezione: ${fdur(a.rev)}</li>`:"")||'<li class="small mute">Oggi la giornata è piena (lezioni, sport o riposo).</li>';
+ if(hid.length||Object.keys(OV).length)$("sc-list").insertAdjacentHTML("beforeend",`<li class="small mute">${hid.length?"Tolte per oggi: "+hid.map(esc).join(", ")+". ":""}<button type="button" class="g small" id="adv-reset" style="padding:0 8px;min-height:0">Ripristina il consiglio</button></li>`);
+ {const W=weekDebt([0,6].includes(new Date().getDay())?new Date():new Date(Date.now()+864e5)),wl=Object.entries(W),wd=new Date().getDay();if(wl.length&&!$("sc-wk"))$("sc-list").insertAdjacentHTML("afterend",'<p class="small" id="sc-wk" style="margin:8px 0 0"></p>');const e=$("sc-wk");if(e){if(wl.length)e.innerHTML=`<b>Saltato questa settimana: ${fdur(wl.reduce((a,x)=>a+x[1],0))}</b> (${wl.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · ")}). ${wd===6||wd===0?"Oggi è weekend: nel consiglio qui sopra c'è già il recupero.":"Non te lo spalmo sui prossimi giorni: lo trovi nel consiglio di sabato e domenica."}`;else e.remove()}}
+ if(!$("sc-why"))$("sc-h").insertAdjacentHTML("afterend",'<p class="small" id="sc-why" style="margin:0 0 8px"></p>');$("sc-why").innerHTML=a.free?`Obiettivo di oggi: <b>${fdur(a.goal)}</b>, il 90% del tempo libero (${fdur(a.free)})${a.why.length?". "+a.why.filter(x=>!/tempo libero/.test(x)).map(x=>x[0].toUpperCase()+x.slice(1)).join(". "):""}.`:"Oggi non c'è tempo libero per studiare.";
  const fm=planFor(new Date(),toMin(S.set.wake),toMin(S.set.bed)).filter(p=>p[3]==="S"&&p[6]!=="n").map(p=>fromMin(p[0])+"–"+fromMin(p[2]));
  $("sc-ex").textContent=[fm.length?"Momenti liberi adatti: "+fm.join(", ")+".":"",examNote(),"Scegli la materia nel menu qui sotto prima di avviare il timer: così il conteggio torna e le materie rimaste indietro recuperano."].filter(Boolean).join(" ")}
 
@@ -988,7 +1019,7 @@ function renderAdvice(){const a=studyAdvice(new Date()),L=Object.entries(a.tot).
 function renderProve(){const k=dk(),L=(S.exams||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
  $("pv-list").innerHTML=L.map(x=>{const g=dDiff(x.d,k);return `<li class="row" style="justify-content:space-between;${g<0?"opacity:.5":""}"><span><span class="pill ${x.k==="E"?"M":""}">${x.k==="E"?"Esame":"Prova"}</span> <b>${esc(x.c)}</b> ${new Date(x.d+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})}${x.a?" ore "+x.a:""} <span class="pill ${g>=0&&g<=3?"I":""}">${g<0?"fatta":g===0?"oggi":g===1?"domani":"tra "+g+" gg"}</span></span><button class="g small" data-pvdel="${x.id}" style="padding:2px 8px">Togli</button></li>`}).join("")||'<li class="mute">Nessuna prova inserita.</li>';
  const subs=subjList();$("pv-subs").innerHTML=subs.map(n=>`<option value="${esc(n)}">`).join("");
- if(!tRun){const cur_=$("st-subj").value;$("st-subj").innerHTML=subs.map(n=>`<option${n===cur_?" selected":""}>${esc(n)}</option>`).join("")}
+ fillSubj();
  $("pv-plan").innerHTML=[0,1,2,3,4,5,6].map(i=>{const d=new Date();d.setDate(d.getDate()+i);const a=studyAdvice(d),L=Object.entries(a.tot).sort((x,y)=>y[1]-x[1]);return `<li><b>${dayLbl(d,i)}</b>: ${L.length?L.map(([n,m])=>esc(n)+" "+fdur(m)).join(" · "):"niente studio"}</li>`}).join("")}
 $("f-pv").onsubmit=e=>{e.preventDefault();const d=$("pv-d").value,c=$("pv-c").value.trim();if(!d||!c)return toast("Inserisci data e materia");S.exams=S.exams||[];S.exams.push({id:Date.now(),d,c,a:$("pv-a").value||"",k:$("pv-k").value});$("pv-c").value="";$("pv-a").value="";save();toast("Aggiunta");render()};
 document.addEventListener("click",e=>{if(e.target.dataset.pvdel){S.gone=S.gone||[];S.gone.push(+e.target.dataset.pvdel);S.exams=(S.exams||[]).filter(x=>x.id!=e.target.dataset.pvdel);save();render()}});
@@ -1017,7 +1048,7 @@ const onl=()=>{$("offl").hidden=navigator.onLine};window.addEventListener("onlin
 function chart(el,lb,vals,fmt){const mx=Math.max(...vals,1);$(el).innerHTML=vals.map(v=>`<div><small>${v?fmt(v):""}</small><i style="height:${v/mx*85}%"></i></div>`).join("");$(lb).innerHTML=last7().map(d=>`<small>${WD[d.getDay()]}</small>`).join("")}
 function toMin(t){const[a,b]=t.split(":").map(Number);return a*60+b}
 function fromMin(m){m=(m+1440)%1440;return pad(Math.floor(m/60))+":"+pad(m%60)}
-function renderTiles(){const st=S.study[dk()]||0,g=S.set.study*3600;$("t-study").textContent=hm(st);$("t-studybar").style.width=Math.min(100,st/g*100)+"%";
+function renderTiles(){const st=S.study[dk()]||0,g=Math.max(1,(()=>{try{return studyAdvice(new Date()).goal}catch(e){return (S.set.study||5)*60}})())*60;$("t-study").textContent=hm(st);$("t-studybar").style.width=Math.min(100,st/g*100)+"%";
  const sl=sleepFor(new Date());$("t-sleep").textContent=sl?sl.toFixed(1)+" h":"–";
  $("t-meals").textContent=new Set(S.meals.filter(m=>m.d===dk()&&m.type!=="Spuntino").map(m=>m.type)).size+"/3";
  const h=S.health[dk()]||S.health[dk(new Date(Date.now()-864e5))];$("t-steps").textContent=h&&h.st?Math.round(h.st).toLocaleString("it-IT"):"–"}
@@ -1025,14 +1056,14 @@ function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("c
  $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
- renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}try{renderNotif()}catch(e){console.error(e)}
+ renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}try{renderNotif()}catch(e){console.error(e)}try{renderSessList()}catch(e){console.error(e)}try{fix55()}catch(e){console.error(e)}
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
  renderDays();const plan=planFor(VD(),w,b),en=vo===0?energy():{e:1,why:["Anteprima: il giorno stesso la giornata si adatta a come hai dormito."]};
  $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=[examNote(),...en.why].filter(Boolean).join(" ");
  let ni=vo?-1:0,nxt=false;if(!vo){plan.forEach((p,i)=>{if(((now-p[0]+1440)%1440)<((now-plan[ni][0]+1440)%1440))ni=i});const c=plan[ni];if(c&&c[2]&&now>=c[2]&&now>=c[0]){const j=plan.findIndex(p=>p[0]>now);ni=j;nxt=j>=0}}
  $("sched").innerHTML=plan.map((p,i)=>`<li class="${i===ni?"now":""}"><span class="num">${i===ni&&nxt?'<small class="mute">dopo</small><br>':""}${fromMin(p[0])}${p[2]?`<br><small class="mute">${fromMin(p[2])}</small>`:""}</span><span>${p[1]} <button type="button" class="g small" data-hide="${esc(pkey(p))}" aria-label="Togli dalla giornata" style="padding:0 6px;min-height:0;border:0;color:var(--mute)">✕</button></span></li>`).join("")+((S.hide||[]).some(h=>h.d===dk(VD())&&!(S.gone||[]).includes(h.id))?`<li><button type="button" class="g small" id="unhide">Rimetti le voci tolte</button></li>`:"");
  renderOrario();
- $("menu-mini").innerHTML=["col","pra","cen"].map(t=>{const A=vo===0&&S.meals.find(m=>m.d===dk()&&m.type===TN[t]&&!m.plan);return A?`<li><b>${TN[t]}</b> <span class="mute">altro:</span> ${esc(A.txt)}</li>`:`<li class="row" style="justify-content:space-between"><span><b>${TN[t]}</b> ${esc(pick(t,VD()).n)}</span><span class="small mute num">${pick(t,VD()).t}'</span></li>`}).join("");try{renderNut()}catch(e){console.error(e)}
+ $("menu-mini").innerHTML=["col","pra","cen"].map(t=>{const A=vo===0&&S.meals.find(m=>m.d===dk()&&m.type===TN[t]&&!m.plan);return A?`<li><b>${TN[t]}</b> <span class="mute">altro:</span> ${esc(A.txt)}</li>`:`<li class="row" style="justify-content:space-between"><span><b>${TN[t]}</b> ${esc(pick(t,VD()).n)}</span><span class="small mute num">${pick(t,VD()).t}min</span></li>`}).join("");try{renderNut()}catch(e){console.error(e)}
  $("tip").textContent="Consiglio: "+TIPS[dayN(new Date())%TIPS.length];
  $("meals").innerHTML=["col","pra","cen"].map(recipeCard).join("");
  $("meal-log").innerHTML=S.meals.filter(m=>m.d===dk()).map(m=>`<li class="row" style="justify-content:space-between"><span><b>${m.type}</b> ${esc(m.txt)}${m.k?` <span class="mute">~${m.k} kcal${m.sc?" · voto "+m.sc+"/10":""}</span>`:""}</span><button class="g small" data-del="${m.at}" style="padding:2px 8px">Togli</button></li>`).join("")||'<li class="mute">Ancora niente oggi.</li>';
@@ -1071,7 +1102,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 54.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 59.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
