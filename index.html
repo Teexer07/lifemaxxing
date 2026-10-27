@@ -356,7 +356,7 @@ const TIPS=["Bevi almeno 1,5 litri d'acqua: tieni una bottiglia sulla scrivania.
 // ---------- stato
 const K="lmx1";let S;
 try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){S={}}
-S=Object.assign({set:{wake:"07:00",bed:"23:30",study:5,subj:"Analisi,Fisica,Geometria,Informatica,Chimica",key:""},meals:[],sleep:[],study:{},sess:[],health:{},swap:{},sleepStart:null,hob:[{n:"Ping pong",g:180},{n:"Palestra o corsa",g:60},{n:"Lettura",g:120},{n:"Chitarra",g:90}],hlog:[],ora:[]},S);
+S=Object.assign({set:{wake:"07:00",bed:"23:30",study:5,subj:"Analisi,Chimica,Informatica",key:""},meals:[],sleep:[],study:{},sess:[],health:{},swap:{},sleepStart:null,hob:[{n:"Ping pong",g:180},{n:"Palestra o corsa",g:60},{n:"Lettura",g:120},{n:"Chitarra",g:90}],hlog:[],ora:[]},S);
 if(!S.mig3){S.mig3=1;S.exams=S.exams||[];if(!S.exams.some(x=>x.d==="2026-10-29"))S.exams.push({id:1793000000001,d:"2026-10-29",c:"Informatica",a:"",k:"P"});if(!S.exams.some(x=>x.d==="2026-11-03"))S.exams.push({id:1793000000002,d:"2026-11-03",c:"Analisi I",a:"",k:"P"})}
 if(!S.mig2){S.mig2=1;S.set.wake="07:00";if(!S.hob.some(h=>h.n==="Ping pong"))S.hob.unshift({n:"Ping pong",g:180})}
 let snap={};const snapAll=()=>{for(const k in S)if(k!=="ts")snap[k]=JSON.stringify(S[k])};snapAll();
@@ -475,7 +475,7 @@ ${X.sec?`<p class="small" style="margin:10px 0 4px"><b>Secondo: ${esc(X.sec.n)}<
 ${X.fr?`<p class="small" style="margin:10px 0 4px"><b>Frutta o dolce: ${esc(X.fr.n)}</b></p><ul class="plain small">${X.fr.ing.map(li).join("")}</ul>`:""}
 ${sw.length?`<p class="small" style="margin:8px 0 0"><b>Prodotti cambiati:</b> ${sw.map(i=>esc(i[5])+" → "+esc(i[0])).join(", ")}. Segui la stessa ricetta usando il nuovo prodotto al posto del vecchio.</p>`:""}
 <details style="margin-top:8px"><summary class="small">Ricetta passo passo (induzione)</summary><ol class="small" style="display:grid;gap:4px">${r.s.map(x=>`<li>${esc(sw.reduce((t,i)=>t.split(i[5]).join(i[0]),x))}</li>`).join("")}</ol></details>
-${(()=>{const M=S.meals.find(m=>m.d===dk()&&m.type===TN[type]&&m.plan);return vo===0&&M&&M.skip&&M.skip.length?`<p class="small" style="margin:8px 0 0">Mangiato tranne: <b>${M.skip.map(esc).join(", ")}</b></p>`:""})()}${vo===0&&excT===type&&!done?`<div style="margin-top:10px;border-top:1px solid var(--line,#ddd);padding-top:8px"><p class="small" style="margin:0 0 6px"><b>Cosa non hai mangiato?</b></p>${[...new Set(mealIng(type,D).map(i=>i[0]))].map(n=>`<label class="row small"><input type="checkbox" class="exc-i" value="${esc(n)}"> ${esc(n)}</label>`).join("")}<div class="row" style="margin-top:6px"><button class="b" data-excok="${type}">Salva</button><button class="g" data-excno="1">Annulla</button></div></div>`:""}
+${(()=>{const M=S.meals.find(m=>m.d===dk()&&m.type===TN[type]&&m.plan);if(vo!==0||!M)return "";const n=nutMeal(M);return `<p class="small" style="margin:8px 0 0">${M.skip&&M.skip.length?`Mangiato tranne: <b>${M.skip.map(esc).join(", ")}</b>. `:""}Hai mangiato <b>~${Math.round(n[0]/10)*10} kcal</b> · <b>${Math.round(n[1])} g proteine</b> · ${Math.round(n[2])} g carboidrati · ${Math.round(n[3])} g grassi.</p>`})()}${vo===0&&excT===type&&!done?`<div style="margin-top:10px;border-top:1px solid var(--line,#ddd);padding-top:8px"><p class="small" style="margin:0 0 6px"><b>Cosa non hai mangiato?</b></p>${[...new Set(mealIng(type,D).map(i=>i[0]))].map(n=>`<label class="row small"><input type="checkbox" class="exc-i" value="${esc(n)}"> ${esc(n)}</label>`).join("")}<div class="row" style="margin-top:6px"><button class="b" data-excok="${type}">Salva</button><button class="g" data-excno="1">Annulla</button></div></div>`:""}
 <div class="row" style="margin-top:10px">${vo===0?`<button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button>`:""}${vo===0&&!done?`<button class="g" data-exc="${type}">Sì, tranne…</button>`:""}${vo===0?`<button class="g" data-alt="${type}">Ho mangiato altro</button>`:""}<button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
 document.addEventListener("click",e=>{const t=e.target;
  if(t.dataset.swap){const k=dk(VD())+t.dataset.swap;S.swap[k]=(S.swap[k]||0)+1;save();render()}
@@ -654,11 +654,14 @@ $("f-sleep").onsubmit=e=>{e.preventDefault();const a=+new Date($("sl-a").value),
 function allSubj(){const a=subjList();S.set.subj.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>{const l=x.toLowerCase();if(!a.some(y=>{const m=y.toLowerCase();return m.startsWith(l)||l.startsWith(m)}))a.push(x)});return a}
 function fillSubj(){const el=$("st-subj");if(!el||document.activeElement===el)return;const v=cur?cur.subj:el.value,L=allSubj();if(v&&!L.includes(v))L.unshift(v);const h=L.map(n=>`<option${n===v?" selected":""}>${esc(n)}</option>`).join("");if(el.innerHTML!==h)el.innerHTML=h}
 document.addEventListener("change",e=>{if(e.target.id!=="st-subj")return;const v=e.target.value;if(cur&&cur.subj!==v){if(cur.s>=60)S.sess.push({a:cur.a,s:cur.s,subj:cur.subj,src:cur.src});cur={a:Date.now(),s:0,subj:v,src:cur.src};save();toast("Da ora conto "+v);renderSessList()}});
+function fix61(){if(!S.fx61s){S.fx61s=1;S.set.subj="Analisi,Chimica,Informatica";save();try{fillSubj()}catch(e){}}if(S.fx61)return;const K="2026-10-27",MV=2417,day=(S.sess||[]).filter(x=>dk(new Date(x.a))===K);
+ if(dk()>"2026-10-29"||day.some(x=>/^informatica/i.test(nsub(x.subj))&&Math.abs(x.s-MV)<=30)){S.fx61=1;save();return}
+ const x=day.find(x=>/^analisi/i.test(nsub(x.subj))&&Math.abs(x.s-MV)<=30);if(!x)return;x.subj=allSubj().find(n=>/^informatica/i.test(n))||"Informatica";x.e=Date.now();S.fx61=1;S.sess=[...S.sess];save();toast("Spostati 40:17 da Analisi a Informatica");render()}
 function fix55(){if(S.fx55||dk()>"2026-10-29")return;const K="2026-10-27",MV=2417,inf=allSubj().find(n=>/^informatica/i.test(n))||"Informatica",L=(S.sess||[]).filter(x=>dk(new Date(x.a))===K&&/^analisi/i.test(nsub(x.subj))).sort((a,b)=>Math.abs(a.s-MV)-Math.abs(b.s-MV));
  if(!L.length)return;S.fx55=1;const x=L[0];if(Math.abs(x.s-MV)<=120)x.subj=inf;else{const y=L.find(z=>z.s>MV);if(!y){save();return}y.s-=MV;S.sess.push({a:y.a+y.s*1000,s:MV,subj:inf,src:y.src})}S.sess=[...S.sess];save();toast("Spostati 40:17 da Analisi a Informatica")}
 function renderSessList(){const el=$("st-sess");if(!el)return;const t0=new Date();t0.setHours(0,0,0,0);const L=(S.sess||[]).filter(x=>x.a>=+t0).sort((a,b)=>a.a-b.a),subs=allSubj();
  el.innerHTML=L.length?L.map(x=>`<li class="row" style="justify-content:space-between;gap:6px"><span class="num">${new Date(x.a).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})} · ${hms(x.s)}</span><select data-sessa="${x.a}" style="width:auto;max-width:170px;font-size:13px;padding:4px;min-height:0">${(subs.includes(x.subj)?subs:[x.subj,...subs]).map(n=>`<option${n===x.subj?" selected":""}>${esc(n)}</option>`).join("")}</select></li>`).join(""):'<li class="small mute">Ancora nessuna sessione oggi.</li>'}
-document.addEventListener("change",e=>{const a=e.target.dataset.sessa;if(!a)return;S.sess=S.sess.map(x=>x.a==a?Object.assign({},x,{subj:e.target.value}):x);save();toast("Materia cambiata");render()});
+document.addEventListener("change",e=>{const a=e.target.dataset.sessa;if(!a)return;S.sess=S.sess.map(x=>x.a==a?Object.assign({},x,{subj:e.target.value,e:Date.now()}):x);save();toast("Materia cambiata");render()});
 let tRun=false,ytPlay=false,cur=null,player=null;
 const active=()=>tRun||((ytPlay||plOn()||noiseOn)&&$("st-yt").checked);
 function tick(){const on=active();
@@ -1073,7 +1076,7 @@ function renderStudy(){const v=last7().map(d=>(S.study[dk(d)]||0)/3600);chart("c
  $("st-log").innerHTML=S.sess.slice(-12).reverse().map(s=>{const d=new Date(s.a);return `<li class="row" style="justify-content:space-between"><span>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())} · ${esc(s.subj)} <span class="mute">${s.src}</span></span><span class="num">${hm(s.s)}</span></li>`}).join("")||'<li class="mute">Nessuna sessione ancora.</li>'}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
- renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}try{renderNotif()}catch(e){console.error(e)}try{renderSessList()}catch(e){console.error(e)}try{fix55()}catch(e){console.error(e)}try{if(!S.fx60&&dk()<="2026-10-28"){const O=(S.advOv||{})["2026-10-27"];if(O)Object.keys(O).forEach(n=>{if(/^analisi/i.test(n)&&O[n]===0)delete O[n]});S.fx60=1;save();renderAdvice()}}catch(e){console.error(e)}
+ renderTiles();try{renderHK()}catch(e){}try{renderNB()}catch(e){console.error(e)}try{renderExtra()}catch(e){console.error(e)}try{renderChk()}catch(e){console.error(e)}try{renderMensa()}catch(e){console.error(e)}try{renderNotif()}catch(e){console.error(e)}try{renderSessList()}catch(e){console.error(e)}try{fix55()}catch(e){console.error(e)}try{fix61()}catch(e){console.error(e)}try{if(!S.fx60&&dk()<="2026-10-28"){const O=(S.advOv||{})["2026-10-27"];if(O)Object.keys(O).forEach(n=>{if(/^analisi/i.test(n)&&O[n]===0)delete O[n]});S.fx60=1;save();renderAdvice()}}catch(e){console.error(e)}
  const w=toMin(S.set.wake),b=toMin(S.set.bed),now=new Date().getHours()*60+new Date().getMinutes();
  renderDays();const plan=planFor(VD(),w,b),en=vo===0?energy():{e:1,why:["Anteprima: il giorno stesso la giornata si adatta a come hai dormito."]};
  $("en-pill").innerHTML=`<span class="pill" style="${en.e<0.75?"background:#fde9d6;color:#8a4a12":en.e<1?"background:#fff3c4;color:#7a5b00":""}">Energia ${en.e<0.75?"bassa":en.e<1?"media":"piena"}</span>`;$("en-why").textContent=[examNote(),...en.why].filter(Boolean).join(" ");
@@ -1096,7 +1099,7 @@ const FN="lifemaxxing-data.json";let tok="",gid="",pulled=false,pushT=null;
 try{tok=localStorage.getItem("lmx-tok")||"";gid=localStorage.getItem("lmx-gist")||""}catch(e){}
 const gh=(u,o={})=>fetch("https://api.github.com"+u,Object.assign({},o,{headers:{Authorization:"token "+tok,Accept:"application/vnd.github+json"}})).then(r=>{if(!r.ok)throw new Error(r.status===401?"codice non valido o scaduto":"errore "+r.status);return r.json()});
 function syncSt(t){$("sy-st").textContent=t}
-function uni(a,b,k){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>m.set(x[k],x));return[...m.values()]}
+function uni(a,b,k){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>{const p=m.get(x[k]);if(!p||(x.e||0)>=(p.e||0))m.set(x[k],x)});return[...m.values()]}
 function merge(R){const L=S,lt=L.ts||{},rt=R.ts||{},o={ts:{}};
  new Set([...Object.keys(L),...Object.keys(R)]).forEach(k=>{if(k==="ts")return;const em=v=>v==null||(typeof v==="object"&&!Object.keys(v).length),a=lt[k]||0,c=rt[k]||0;const useR=k==="ora"&&em(R[k])!==em(L[k])?!em(R[k]):!(k in L)||c>a||(c===a&&!(em(R[k])&&!em(L[k])));o[k]=useR?R[k]:L[k];o.ts[k]=Math.max(lt[k]||0,rt[k]||0)});
  o.gone=[...new Set([...(L.gone||[]),...(R.gone||[])])];o.meals=uni(L.meals,R.meals,"at").filter(m=>!o.gone.includes(m.at));
@@ -1110,7 +1113,7 @@ async function pull(){if(!tok)return;try{syncSt("Sincronizzo...");
  if(gid){const g=await gh("/gists/"+gid);const f=g.files[FN];const txt=f.truncated?await fetch(f.raw_url).then(r=>r.text()):f.content;S=merge(JSON.parse(txt));save(true);
   const hf=Object.keys(g.files).filter(k=>/^salute/.test(k));let hn=0;hf.forEach(k=>String(g.files[k].content||"").split(/\r?\n/).forEach(l=>{if(importH(l.trim()))hn++}));
   const old=hf.filter(k=>{const m=k.match(/(\d{4}-\d\d-\d\d)/);return m&&m[1]<dk()});if(old.length)gh("/gists/"+gid,{method:"PATCH",body:JSON.stringify({files:Object.fromEntries(old.map(k=>[k,null]))})}).catch(()=>{});
-  if(hn)localStorage.setItem("lmx-hlast",new Date().toISOString());fillSet();render()}
+  if(hn)localStorage.setItem("lmx-hlast",new Date().toISOString());fillSet();try{fix61()}catch(e){}render()}
  pulled=true;await push();}catch(e){syncSt("Sincronizzazione non riuscita: "+e.message)}}
 async function push(){if(!tok||!pulled)return;try{const body=JSON.stringify({files:{[FN]:{content:JSON.stringify(S)}}});
  if(gid)await gh("/gists/"+gid,{method:"PATCH",body});else{const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Dati Lifemaxxing",public:false,files:{[FN]:{content:JSON.stringify(S)}}})});gid=g.id;localStorage.setItem("lmx-gist",gid)}
@@ -1119,7 +1122,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 60.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 61.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
