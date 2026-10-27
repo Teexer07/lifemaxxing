@@ -1,4 +1,4 @@
-const CACHE = "lmx-v43";
+const CACHE = "lmx-v44";
 const ASSETS = [
   "./", "index.html", "manifest.json", "icon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png",
   "ocr/tesseract.min.js", "ocr/worker.min.js",
