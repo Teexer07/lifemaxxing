@@ -608,14 +608,14 @@ async function recAI(f){const c=await new Promise((ok,ko)=>{const im=new Image()
  const L=S.shopList||{items:[]},names=L.items.map(x=>x.n);
  const r=await gemJSON([{inline_data:{mime_type:"image/jpeg",data:c.toDataURL("image/jpeg",0.8).split(",")[1]}},{text:`Questo è uno scontrino di un supermercato italiano (In's Mercato o Mercatò Local, a Torino). Leggilo e rispondi solo in JSON: {"negozio":"I" per In's, "M" per Mercatò, "A" se altro,"data":"AAAA-MM-GG","totale":numero in euro (il totale pagato),"presi":[nomi, copiati ESATTAMENTE da questa lista, dei prodotti che compaiono sullo scontrino anche se scritti abbreviati o con marca diversa],"altri":[prodotti sullo scontrino che non sono nella lista]}. Lista della spesa: ${JSON.stringify(names)}`}]);
  return r}
-$("ex-photo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const st=$("ex-ocr");
+$("ex-photo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const st=$("ex-ocr");let gw=!LG("lmx-gem")?"Gemini non usato: su questo dispositivo manca la chiave (Opzioni → Chiave Gemini → Salva). ":!navigator.onLine?"Gemini non usato: sei offline. ":"";
  if(navigator.onLine&&LG("lmx-gem")){try{st.textContent="Leggo lo scontrino con Gemini...";const r=await recAI(f),L=S.shopList;if(r.totale)$("ex-a").value=(+r.totale).toFixed(2);if(/^\d{4}-\d\d-\d\d$/.test(r.data||""))$("ex-d").value=r.data;if(/^[IMA]$/.test(r.negozio||""))$("ex-s").value=r.negozio;
    const P=(r.presi||[]).filter(n=>L&&L.items.some(x=>x.n===n));if(P.length){P.forEach(n=>L.done[n]=true);S.shopList=Object.assign({},L);save();render()}$("ex-n").value=$("ex-n").value||"da foto";
-   st.textContent=`Letto: ${r.totale?eu(+r.totale):"totale non trovato"}${r.negozio&&SN[r.negozio]?" da "+SN[r.negozio]:""}. Ho spuntato ${P.length} prodotti della lista${(r.altri||[]).length?` (fuori lista: ${r.altri.slice(0,6).map(esc).join(", ")})`:""}. Controlla e premi Registra.`;return}catch(err){st.textContent="Gemini non riuscito ("+err.message+"), provo a leggerlo sul telefono..."}}
+   st.textContent=`Letto: ${r.totale?eu(+r.totale):"totale non trovato"}${r.negozio&&SN[r.negozio]?" da "+SN[r.negozio]:""}. Ho spuntato ${P.length} prodotti della lista${(r.altri||[]).length?` (fuori lista: ${r.altri.slice(0,6).map(esc).join(", ")})`:""}. Controlla e premi Registra.`;return}catch(err){gw="Gemini non riuscito ("+err.message+"). ";st.textContent=gw+"Provo a leggerlo sul telefono..."}}
  try{st.textContent="Preparo la lettura (la prima volta scarica circa 5 MB)...";const w=await ocrWorker();st.textContent="Leggo lo scontrino...";
  const{data}=await w.recognize(await prepImg(f));const r=parseRec(data.text);if(r.tot)$("ex-a").value=r.tot.toFixed(2);if(r.d)$("ex-d").value=r.d;if(r.s)$("ex-s").value=r.s;
- st.textContent=r.tot?`Letto: ${eu(r.tot)}${r.d?" del "+r.d.split("-").reverse().join("/"):""}${r.s?" da "+SN[r.s]:""}. Controlla e premi Registra.`:"Non ho trovato il totale: inseriscilo a mano.";$("ex-n").value=$("ex-n").value||"da foto"}
- catch(err){st.textContent="Lettura non riuscita ("+err.message+"). Inserisci il totale a mano."}};
+ st.textContent=gw+(r.tot?`Letto: ${eu(r.tot)}${r.d?" del "+r.d.split("-").reverse().join("/"):""}${r.s?" da "+SN[r.s]:""}. Controlla e premi Registra.`+"":"Non ho trovato il totale: inseriscilo a mano.");$("ex-n").value=$("ex-n").value||"da foto"}
+ catch(err){st.textContent=gw+"Lettura non riuscita ("+err.message+"). Inserisci il totale a mano."}};
 document.addEventListener("click",e=>{if(e.target.dataset.exdel){S.gone=S.gone||[];S.gone.push(+e.target.dataset.exdel);save();render()}});
 
 // ---------- sonno
@@ -1065,7 +1065,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 50.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 51.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
