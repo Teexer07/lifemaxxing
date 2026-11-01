@@ -87,7 +87,7 @@ ol{padding-left:20px;margin:6px 0}
 <section id="s-pasti">
   <div class="row days" id="days-pasti"></div>
   <div class="row"><h2 style="margin:0" id="pasti-h">Pasti di oggi</h2><span class="small mute">Spesa: <span class="pill I">In's</span> discount, <span class="pill M">Mercatò</span> fresco</span></div>
-  <div class="card" id="ai-card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Menu della settimana</h2><span class="pill">Gemini</span></div><p class="small" id="ai-st" style="margin:6px 0"></p><div class="row"><button class="b" id="ai-go">Crea il menu con Gemini</button><button class="g" id="ai-stop" hidden>Ferma</button><button class="b" id="home-go">Spesa di 3 giorni con quello che ho</button></div><p class="small mute" style="margin:6px 0 0">"Spesa di 3 giorni" non usa Gemini: conta cosa ti resta (spunte della spesa meno i pasti segnati) e ci mette un secondo.</p></div>
+  <div class="card" id="ai-card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Menu della settimana</h2><span class="pill">Gemini</span></div><p class="small" id="ai-st" style="margin:6px 0"></p><div class="row"><button class="b" id="ai-go">Crea il menu con Gemini</button><button class="g" id="ai-stop" hidden>Ferma</button></div></div>
   <div class="grid" id="meals"></div>
   <div class="card" id="mn-card"><h2>Hai mangiato a mensa?</h2>
     <label class="row small"><input type="checkbox" id="mn-on"> Sì, oggi a pranzo ho mangiato in mensa</label>
@@ -375,7 +375,7 @@ function effB(m,depth=0){const base=(S.set.budget||200)+((S.badj||{})[m]||0);if(
 function budget(){const now=new Date(),m=dk().slice(0,7),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),day=now.getDate();
  const spent=mSpent(m),eb=effB(m),B=eb.B,carry=eb.carry,adj=(S.badj||{})[m]||0;
  const allowed=B*Math.min(1,(day+6)/dim),left=B-spent,weeks=Math.max(1,(dim-day+1)/7);return{spent,B,left,carry,adj,perWeek:left/weeks,save:spent>allowed||left/weeks<35}}
-function pick(type,d){{const am=((S.aiMenu||{}).days||{})[dk(d)],r=am&&am[type];if(r&&!S.swap[dk(d)+type]&&!(S.no||[]).includes(r.n))return r}let L=(type==="cen"&&sportDay(d)?R.rec:R[type]).filter(r=>!(S.no||[]).includes(r.n));{const b=L.filter(r=>banOk(r.ing));if(b.length>=2)L=b}{const A=avoidSet();if(A){const ms=r=>r.ing.filter(i=>i[2]!=="q.b."&&A.has(i[0])).length,mn=Math.min(...L.map(ms));L=L.filter(r=>ms(r)===mn)}if(L.some(r=>!r.fb))L=L.filter(r=>!r.fb)}const k=dk(d)+type;if(type==="col"){const B=L.find(r=>r.we);if([0,6].includes(d.getDay())&&B&&!S.swap[k])return B;L=L.filter(r=>!r.we)}
+function pick(type,d){const rj=(S.rej||{})[dk(d)+type]||[];{const am=((S.aiMenu||{}).days||{})[dk(d)],r=am&&am[type];if(r&&!S.swap[dk(d)+type]&&!(S.no||[]).includes(r.n)&&!rj.includes(r.n))return r}let L=(type==="cen"&&sportDay(d)?R.rec:R[type]).filter(r=>!(S.no||[]).includes(r.n));{const b=L.filter(r=>!rj.includes(r.n));if(b.length)L=b}{const b=L.filter(r=>banOk(r.ing));if(b.length>=2)L=b}{const A=avoidSet();if(A){const ms=r=>r.ing.filter(i=>i[2]!=="q.b."&&A.has(i[0])).length,mn=Math.min(...L.map(ms));L=L.filter(r=>ms(r)===mn)}if(L.some(r=>!r.fb))L=L.filter(r=>!r.fb)}const k=dk(d)+type;if(type==="col"){const B=L.find(r=>r.we);if([0,6].includes(d.getDay())&&B&&!S.swap[k])return B;L=L.filter(r=>!r.we)}
  if(budget().save&&L.length>3){const c=L.map(rCost).sort((a,b)=>a-b),med=c[Math.floor(c.length/2)];L=L.filter(r=>rCost(r)<=med)}const ix=dayN(d)*({col:3,pra:7,cen:5}[type])+(S.swap[k]||0);let x=L[ix%L.length];if(type==="cen"&&/salmone/i.test(x.n)&&/salmone/i.test(pick("pra",d).n))x=L[(ix+1)%L.length];return x}
 const TN={col:"Colazione",pra:"Pranzo",cen:"Cena"};
 let vo=0;const VD=()=>{const d=new Date();d.setDate(d.getDate()+vo);return d};
@@ -463,9 +463,10 @@ ${X.fr?`<p class="small" style="margin:10px 0 4px"><b>Frutta o dolce: ${esc(X.fr
 ${sw.length?`<p class="small" style="margin:8px 0 0"><b>Prodotti cambiati:</b> ${sw.map(i=>esc(i[5])+" → "+esc(i[0])).join(", ")}. Segui la stessa ricetta usando il nuovo prodotto al posto del vecchio.</p>`:""}
 <details style="margin-top:8px"><summary class="small">Ricetta passo passo (induzione)</summary><ol class="small" style="display:grid;gap:4px">${r.s.map(x=>`<li>${esc(sw.reduce((t,i)=>t.split(i[5]).join(i[0]),x))}</li>`).join("")}</ol></details>
 ${(()=>{const M=S.meals.find(m=>m.d===dk()&&m.type===TN[type]&&m.plan);if(vo!==0||!M)return "";const n=nutMeal(M);return `<p class="small" style="margin:8px 0 0">${M.skip&&M.skip.length?`Mangiato tranne: <b>${M.skip.map(esc).join(", ")}</b>. `:""}Hai mangiato <b>~${Math.round(n[0]/10)*10} kcal</b> · <b>${Math.round(n[1])} g proteine</b> · ${Math.round(n[2])} g carboidrati · ${Math.round(n[3])} g grassi.</p>`})()}${vo===0&&excT===type&&!done?`<div style="margin-top:10px;border-top:1px solid var(--line,#ddd);padding-top:8px"><p class="small" style="margin:0 0 6px"><b>Cosa non hai mangiato?</b></p>${[...new Set(mealIng(type,D).map(i=>i[0]))].map(n=>`<label class="row small"><input type="checkbox" class="exc-i" value="${esc(n)}"> ${esc(n)}</label>`).join("")}<div class="row" style="margin-top:6px"><button class="b" data-excok="${type}">Salva</button><button class="g" data-excno="1">Annulla</button></div></div>`:""}
-<div class="row" style="margin-top:10px">${vo===0?`<button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button>`:""}${vo===0&&!done?`<button class="g" data-exc="${type}">Sì, tranne…</button>`:""}${vo===0?`<button class="g" data-alt="${type}">Ho mangiato altro</button>`:""}<button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
+${swapBusy[dk(D)+type]?`<p class="small" style="margin:8px 0 0"><b data-swapst="${dk(D)+type}">${esc(swapBusy[dk(D)+type])}</b></p>`:""}<div class="row" style="margin-top:10px">${vo===0?`<button class="${done?"g":"b"}" data-eat="${type}">${done?"Mangiato ✓":"L'ho mangiato"}</button>`:""}${vo===0&&!done?`<button class="g" data-exc="${type}">Sì, tranne…</button>`:""}${vo===0?`<button class="g" data-alt="${type}">Ho mangiato altro</button>`:""}<button class="g" data-swap="${type}">Cambia</button><button class="g" data-no="${type}">Non mi piace</button></div></div>`}
 document.addEventListener("click",e=>{const t=e.target;
- if(t.dataset.swap){const k=dk(VD())+t.dataset.swap;S.swap[k]=(S.swap[k]||0)+1;save();render()}
+ if(t.dataset.swap){const ty=t.dataset.swap,D=VD(),k=dk(D)+ty,cur=pick(ty,D);S.rej=Object.assign({},S.rej||{});S.rej[k]=[...new Set([...(S.rej[k]||[]),cur.n])];Object.keys(S.rej).forEach(x=>{if(x.slice(0,10)<dk())delete S.rej[x]});
+  if(LG("lmx-gem")&&navigator.onLine){save();swapAI(ty,D)}else{const am=((S.aiMenu||{}).days||{})[dk(D)];if(am&&am[ty]){delete am[ty];S.aiMenu=Object.assign({},S.aiMenu)}S.swap[k]=(S.swap[k]||0)+1;save();toast(LG("lmx-gem")?"Sei offline: ti propongo un'altra ricetta dell'app":"Senza chiave Gemini: altra ricetta dell'app");render()}}
  if(t.dataset.eat){const ty=TN[t.dataset.eat];if(!S.meals.some(m=>m.d===dk()&&m.type===ty)){S.meals.push({d:dk(),type:ty,txt:pick(t.dataset.eat,new Date()).n,at:Date.now(),plan:1});save();toast("Registrato");render()}}
  if(t.dataset.exc){excT=t.dataset.exc;render()}
  if(t.dataset.excno){excT="";render()}
@@ -494,7 +495,7 @@ function makeShop0(){const tot={};for(let i=0;i<7;i++){const d=new Date();d.setD
   items.push({n:o.n,s:o.s,txt,need:fq(o.q,o.u),eur:Math.round(eur*100)/100,from:o.from,ing:1})});
  (S.xshop||[]).forEach(x=>{if(!items.some(y=>y.n===x.n))items.push(Object.assign({need:"aggiunto da te"},x))});
  if(!S.lastBags||dDiff(dk(),S.lastBags)>=12||dDiff(S.lastBags,dk())>=12)items.push({n:"Sacchetti per l'immondizia",s:"I",txt:"1 rotolo",need:"ogni 2 settimane",eur:1.29,cat:"Casa e pulizia"});
- const hv=new Set(S.have||[]);S.shopList={from:dk(),at:Date.now(),items,pantry,done:{},fin:{},mer:1,v48:1,v50:1};S.have=[...hv];save()}
+ const hv=new Set(S.have||[]);if(S.shopList&&S.shopList.items&&S.shopList.items.length)S.shopHist=[S.shopList,...(S.shopHist||[])].slice(0,3);S.shopList={from:dk(),at:Date.now(),items,pantry,done:{},fin:{},mer:1,v48:1,v50:1};S.have=[...hv];save()}
 document.addEventListener("change",e=>{const t=e.target;if(t.dataset.shopt===undefined||!t.value)return;S.shopT=Object.assign({},S.shopT||{},{[t.dataset.shopt]:t.value});save();toast("Spesa alle "+t.value);render()});
 // ---------- notifiche: l'app manda i promemoria di oggi e domani al server (Cloudflare), che spedisce la notifica al minuto giusto
 const WURL=(()=>{try{return localStorage.getItem("lmx-push-url")||"https://lmx-push.lifemaxxing.workers.dev"}catch(e){return""}})();
@@ -550,13 +551,29 @@ cen:[{n:"Hamburger e riso al burro",fb:1,t:16,k:620,tool:"pentola + padella",ing
 {n:"Cotolette e pane",fb:1,t:10,k:600,tool:"padella",ing:[["Cotolette di pollo impanate",2,"pz","I"],["Pane fresco",2,"fette","M"],["Olio extravergine",0,"q.b.","I"]],s:["Padella a potenza 6 con un filo d'olio.","Cuoci le cotolette 4 minuti per lato.","Servile con il pane."]}]};
 R.col.push(...FBR.col);R.pra.push(...FBR.pra);R.cen.push(...FBR.cen);R.rec.push(...FBR.cen.map(r=>Object.assign({},r,{n:r.n+" (porzione grande)",k:Math.round(r.k*1.3),ing:r.ing.map(i=>i[2]==="q.b."?i:[i[0],Math.round(i[1]*1.3*100)/100,i[2],i[3]])})));
 
+
+function knownIng(){const known={};[...R.col,...R.pra,...R.cen,...R.rec,...SEC,...FRU].forEach(r=>r.ing.forEach(i=>{if(!known[i[0]])known[i[0]]=[i[2],i[3]]}));return known}
+function aiRec(r,known){if(!r||!r.n||!Array.isArray(r.ing))return null;if(MAIS.test(r.n+" "+r.ing.map(i=>i&&i[0]).join(" ")))return null;
+ return{n:String(r.n),t:+r.t||15,k:+r.k||500,tool:String(r.tool||""),ai:1,ing:r.ing.filter(i=>Array.isArray(i)&&i[0]).map(i=>{const kn=known[i[0]];return[String(i[0]),i[2]==="q.b."?0:(+i[1]||1),String(i[2]||(kn&&kn[0])||"pz"),(i[3]==="M"||i[3]==="I")?i[3]:(kn&&kn[1])||"I"]}),s:(r.s||[]).map(String)}}
+const swapBusy={};
+async function swapAI(ty,D){const k=dk(D)+ty;if(swapBusy[k])return;swapBusy[k]="Gemini sta cercando un altro piatto…";render();
+ try{const known=knownIng(),L=S.shopList||{},IN=invNow(),rej=(S.rej||{})[k]||[];
+  const prompt=`Proponi UN piatto per ${TN[ty].toLowerCase()} di ${D.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}${ty==="cen"&&sportDay(D)?" (sera di ping pong: cena di recupero abbondante)":""} per Davide, studente che cucina su induzione.
+Gusti da bambino delle elementari, piatto semplice e familiare. ALLERGIA: niente mais o farina di mais. Mai: ${(S.banI||[]).join(", ")||"-"}. Non gli piacciono: ${(S.no||[]).join(", ")||"-"}.
+DEVE essere diverso da: ${rej.join(", ")}.
+Varia rispetto ai giorni vicini. Le quantità in casa sono stime; la spesa con le spunte è del ${new Date(((S.shopList||{}).from||dk())+"T12:00").toLocaleDateString("it-IT")}: carne, pesce e latticini freschi comprati più di 3 giorni fa NON usarli (salvo surgelati o congelati). Usa il più possibile quello che ha in casa: ${Object.entries(IN).map(([n,q])=>n+" ("+Math.round(q*10)/10+")").concat(L.pantry||[],S.have||[]).join(", ")||"poco o niente"}.
+Nomi e unità degli ingredienti, quando possibile: ${Object.entries(known).map(([n,[u,st]])=>n+": "+u+", "+st).join("; ")}.
+Rispondi SOLO con JSON: {"n":"nome","t":minuti,"k":kcal,"tool":"attrezzi","ing":[["nome",quantità,"unità","I o M"]],"s":["passo 1","passo 2"]}`;
+  const J=await gemJSON([{text:prompt}],{forever:1,fast:1,to:15000,st:t=>{swapBusy[k]=t;const e=document.querySelector(`[data-swapst="${k}"]`);if(e)e.textContent=t},cancel:()=>!swapBusy[k]});
+  const v=aiRec(J.n?J:(J.days&&J.days[0]&&J.days[0][ty])||J,known);if(!v||rej.includes(v.n))throw new Error("piatto non valido, riprova");
+  S.aiMenu=S.aiMenu||{at:Date.now(),days:{}};S.aiMenu.days[dk(D)]=Object.assign({},S.aiMenu.days[dk(D)]||{},{[ty]:v});delete S.swap[k];S.aiMenu=Object.assign({},S.aiMenu);save();toast("Nuovo piatto: "+v.n)}
+ catch(e){if(swapBusy[k])toast("Cambia: "+e.message)}finally{delete swapBusy[k];render()}}
 // ---------- menu settimanale e spesa affidati a Gemini (riprova finché non riesce)
 let aiRun=false,aiStop=false;
 function aiStatus(){const e=$("ai-st");if(!e)return;const M=S.aiMenu,ds=M?Object.keys(M.days).filter(k=>k>=dk()).sort():[];$("ai-go").hidden=aiRun;$("ai-stop").hidden=!aiRun;$("ai-go").textContent=ds.length?"Rifai il menu con Gemini":"Crea il menu con Gemini";
  if(!aiRun)e.textContent=ds.length?`Menu di Gemini fino a ${new Date(ds[ds.length-1]+"T12:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric"})}. "Cambia" su un piatto torna alle ricette dell'app per quel pasto.`:(LG("lmx-gem")?"Gemini prepara colazioni, pranzi e cene dei prossimi 7 giorni e la lista della spesa.":"Inserisci la chiave Gemini in Opzioni: poi il menu della settimana lo prepara Gemini.")}
-async function genMenu(auto){if(aiRun||!LG("lmx-gem"))return;aiRun=true;aiStop=false;const st=t=>{const e=$("ai-st");if(e)e.textContent=t};aiStatus();st("Gemini sta preparando il menu della settimana…");if(!S.aiMenu||!Object.keys(S.aiMenu.days).some(k=>k>dk()))homeShop(3);
- try{const known={};[...R.col,...R.pra,...R.cen,...R.rec,...SEC,...FRU].forEach(r=>r.ing.forEach(i=>{if(!known[i[0]])known[i[0]]=[i[2],i[3]]}));
-  const L=S.shopList||{},IN=invNow(),have=[...Object.entries(IN).map(([n,q])=>n+" ("+Math.round(q*10)/10+")"),...(S.have||[]),...(L.pantry||[])];
+async function genMenu(auto){if(aiRun||!LG("lmx-gem"))return;aiRun=true;aiStop=false;const st=t=>{const e=$("ai-st");if(e)e.textContent=t};aiStatus();st("Gemini sta preparando il menu della settimana…");
+ try{const known=knownIng(),L=S.shopList||{},IN=invNow(),have=[...Object.entries(IN).map(([n,q])=>n+" ("+Math.round(q*10)/10+")"),...(S.have||[]),...(L.pantry||[])];
   const days=[];for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()+i);days.push(dk(d)+" "+d.toLocaleDateString("it-IT",{weekday:"long"})+(sportDay(d)?" (ping pong la sera: cena di recupero più abbondante)":""))}
   const b=budget(),wk=Math.max(25,Math.min(60,Math.round(b.perWeek||45)));
   const prompt=`Sei il nutrizionista di Davide, studente universitario a Torino che vive da solo e cucina su un piano a induzione. Prepara il menu dei prossimi 7 giorni (colazione, pranzo, cena) e la spesa che ne deriva.
@@ -564,7 +581,7 @@ REGOLE:
 - Gusti da bambino delle elementari: piatti semplici e familiari (pasta al pomodoro, cotoletta, panini, pizza, riso al burro, ecc.). Al massimo UNA novità in tutta la settimana.
 - ALLERGIA: niente mais né farina di mais (anche polenta, corn flakes, amido di mais, nachos, tortillas). Fondamentale.
 - Ingredienti da non usare mai: ${(S.banI||[]).join(", ")||"nessuno"}. Piatti che non gli piacciono: ${(S.no||[]).join(", ")||"nessuno"}.
-- Usa PRIMA quello che ha già in casa: ${have.join(", ")||"(niente di segnato)"}.
+- Usa PRIMA quello che ha già in casa: ${have.join(", ")||"(niente di segnato)"}. Le quantità in casa sono stime; la spesa con le spunte è del ${new Date(((S.shopList||{}).from||dk())+"T12:00").toLocaleDateString("it-IT")}: carne, pesce e latticini freschi comprati più di 3 giorni fa NON usarli (salvo surgelati o congelati).
 - Budget per la spesa di questa settimana: circa ${wk} €. Negozi: "I" = In's discount, "M" = Mercatò (frutta, verdura, pane fresco).
 - Circa ${KT} kcal e ${PRT} g di proteine al giorno, un po' di frutta ogni giorno, pesce grasso almeno una volta (omega 3).
 - Preparazioni brevi (max 25 minuti), passi chiari per chi non sa cucinare, con potenze dell'induzione (1-9) e tempi.
@@ -572,8 +589,7 @@ REGOLE:
 Giorni: ${days.join("; ")}.
 Rispondi SOLO con JSON: {"days":[{"d":"AAAA-MM-GG","col":R,"pra":R,"cen":R}]} dove R = {"n":"nome piatto","t":minuti,"k":kcal,"tool":"attrezzi","ing":[["nome",quantità,"unità","I o M"]],"s":["passo 1","passo 2"]}. La frutta del pasto va dentro "ing".`;
   const J=await gemJSON([{text:prompt}],{forever:1,fast:1,st,cancel:()=>aiStop,to:15000});const out={};let n=0;
-  (J.days||[]).forEach(x=>{if(!/^\d{4}-\d\d-\d\d$/.test(x.d||""))return;const o={};["col","pra","cen"].forEach(t=>{const r=x[t];if(!r||!r.n||!Array.isArray(r.ing))return;if(MAIS.test(r.n+" "+r.ing.map(i=>i[0]).join(" ")))return;
-   o[t]={n:String(r.n),t:+r.t||15,k:+r.k||500,tool:String(r.tool||""),ai:1,ing:r.ing.filter(i=>Array.isArray(i)&&i[0]).map(i=>{const kn=known[i[0]];return[String(i[0]),i[2]==="q.b."?0:(+i[1]||1),String(i[2]||(kn&&kn[0])||"pz"),(i[3]==="M"||i[3]==="I")?i[3]:(kn&&kn[1])||"I"]}),s:(r.s||[]).map(String)};n++});if(Object.keys(o).length)out[x.d]=o});
+  (J.days||[]).forEach(x=>{if(!/^\d{4}-\d\d-\d\d$/.test(x.d||""))return;const o={};["col","pra","cen"].forEach(t=>{const v=aiRec(x[t],known);if(v){o[t]=v;n++}});if(Object.keys(o).length)out[x.d]=o});
   if(!n)throw new Error("Gemini ha risposto senza piatti validi");
   S.aiMenu={at:Date.now(),days:out};makeShop();save();toast(`Menu di Gemini pronto (${n} pasti) e lista della spesa aggiornata`)}
  catch(e){if(e.message!=="annullato")toast("Menu di Gemini: "+e.message)}finally{aiRun=false;aiStatus();render()}}
@@ -1176,7 +1192,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 67.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 68.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
