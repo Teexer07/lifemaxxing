@@ -604,6 +604,8 @@ function invNow(){const L=S.shopList||{},I={},add=(n,q)=>I[n]=(I[n]||0)+q;let t0
  if(S.inv){Object.entries(S.inv.q).forEach(([n,q])=>add(n,q));t0=S.inv.at;if((L.at||0)>=S.inv.at)(L.items||[]).forEach(x=>{if((L.done||{})[x.n])add(x.n,boughtQ(x))})}
  else{(L.items||[]).forEach(x=>{if((L.done||{})[x.n])add(x.n,boughtQ(x))});t0=new Date((L.from||dk())+"T00:00").getTime()}
  S.meals.filter(m=>m.plan&&m.at>t0&&!(S.gone||[]).includes(m.at)).forEach(m=>mealUse(m).forEach(i=>add(i[0],-i[1])));
+ {const por={};[...R.col,...R.pra,...R.cen,...R.rec,...SEC,...FRU].forEach(r=>r.ing.forEach(i=>{if(i[2]!=="q.b."&&!por[i[0]])por[i[0]]=i[1]}));const key=n=>n.toLowerCase().replace(/\b(di|al|alla|a|e|in|da|fette|fettine|surgelat[ie]|parzialmente|scremato)\b/g," ").trim().split(/\s+/).filter(w=>w.length>3)[0];
+  S.meals.filter(m=>!m.plan&&m.txt&&m.at>t0&&!(S.gone||[]).includes(m.at)).forEach(m=>{const t=m.txt.toLowerCase();Object.keys(I).forEach(n=>{const k=key(n);if(!k||!t.includes(k.slice(0,Math.max(4,k.length-1))))return;const mm=t.match(new RegExp("(\\d+)\\s*(?:\\w+\\s+){0,2}"+k.slice(0,4)));const q=mm?+mm[1]*(por[n]&&/pz|fette/.test(((Object.values(R).flat().flatMap(r=>r.ing).find(i=>i[0]===n)||[])[2])||"")?1:(por[n]||1)/ (mm?+mm[1]:1)):(por[n]||1);add(n,-q)})})}
  Object.keys(I).forEach(n=>{if(I[n]<=0.01)delete I[n]});return I}
 function planHome(nd){nd=nd||3;const I=invNow(),stock=Object.assign({},I),plenty=new Set([...((S.shopList||{}).pantry||[]),...(S.have||[])]),days={},used=new Set(),buy={};
  const miss=(r)=>r.ing.map(subI).filter(i=>i[2]!=="q.b."&&!plenty.has(i[0])&&(I[i[0]]||0)<i[1]*0.8);
@@ -1196,7 +1198,7 @@ let lastPush=0;function schedPush(){if(!tok)return;clearTimeout(pushT);pushT=set
 $("sy-now").onclick=()=>{if(!tok)return syncSt("Prima incolla il codice e premi Collega.");pulled=false;pull()};
 $("f-sync").onsubmit=e=>{e.preventDefault();const m=$("sy-tok").value.replace(/\s/g,"").match(/(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,})/i);if(!m){syncSt("Codice non riconosciuto: deve iniziare con ghp_ (copialo da GitHub o dalle Note).");return toast("Codice non riconosciuto")}const v=m[1].replace(/^gh([pousr])_/i,(x,c)=>"gh"+c.toLowerCase()+"_").replace(/^github_pat_/i,"github_pat_");tok=v;gid="";try{localStorage.setItem("lmx-tok",tok);localStorage.removeItem("lmx-gist")}catch(err){}$("sy-tok").value="";pulled=false;pull()};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();else if(pulled)push()});
-syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 73.");
+syncSt((tok?"Collegato.":"Non collegato: i dati restano solo su questo dispositivo.")+" Versione app 74.");
 fillSet();render();pull();
 if(location.hash&&$("s-"+location.hash.slice(1)))show(location.hash.slice(1));else{try{const lt=localStorage.getItem("lmx-tab");if(lt&&$("s-"+lt))show(lt)}catch(e){}}
 if("serviceWorker"in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))&&!/claude/.test(location.hostname))navigator.serviceWorker.register("sw.js").catch(()=>{});
